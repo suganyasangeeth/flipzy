@@ -1,101 +1,336 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase/client";
+
+type RoleTab = "user" | "admin";
+type UserMode = "login" | "signup";
+
+export default function LoginPage() {
+  const [role, setRole] = useState<RoleTab>("user");
+  const [mode, setMode] = useState<UserMode>("login");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      if (role === "user" && mode === "signup") {
+        let res: Response;
+        try {
+          res = await fetch("/api/auth/signup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, email, password }),
+          });
+        } catch {
+          setError("Network error — please try again.");
+          setLoading(false);
+          return;
+        }
+
+        let data: { error?: string };
+        try {
+          data = await res.json();
+        } catch {
+          setError("Unexpected response from server.");
+          setLoading(false);
+          return;
+        }
+
+        if (!res.ok) {
+          setError(data.error || "Signup failed.");
+          setLoading(false);
+          return;
+        }
+      }
+
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) {
+        setError(authError.message);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(false);
+
+      const { data: isAdmin } = await supabase.rpc("is_admin");
+      router.push(isAdmin ? "/admin" : "/home");
+    } catch {
+      setError("Something went wrong. Please try again.");
+      setLoading(false);
+    }
+  }
+
+  function resetForm() {
+    setName("");
+    setEmail("");
+    setPassword("");
+    setError("");
+  }
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div className="bg-background min-h-screen flex items-center justify-center p-container-padding font-body-md text-on-surface">
+      <main className="w-full max-w-md relative">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <h1 className="font-display-hero text-display-hero text-primary uppercase tracking-tighter drop-shadow-md">
+            Flipzy
+          </h1>
+          <p className="font-label-caps text-label-caps text-on-surface-variant mt-2">
+            {role === "admin" ? "Admin Portal" : "Kid Login"}
+          </p>
+        </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        {/* Role Toggle */}
+        <div className="flex gap-3 mb-stack-gap">
+          <button
+            type="button"
+            onClick={() => {
+              setRole("user");
+              resetForm();
+            }}
+            className={`flex-1 py-3 rounded-xl font-label-caps text-label-caps uppercase transition-all border-2 ${
+              role === "user"
+                ? "bg-accent-food text-on-primary border-accent-food shadow-chunky-primary active:translate-x-[6px] active:translate-y-[6px] active:shadow-none"
+                : "bg-surface-container-highest text-on-surface border-outline-variant hover:border-accent-food"
+            }`}
           >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            User Login
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setRole("admin");
+              setMode("login");
+              resetForm();
+            }}
+            className={`flex-1 py-3 rounded-xl font-label-caps text-label-caps uppercase transition-all border-2 ${
+              role === "admin"
+                ? "bg-accent-food text-on-primary border-accent-food shadow-chunky-primary active:translate-x-[6px] active:translate-y-[6px] active:shadow-none"
+                : "bg-surface-container-highest text-on-surface border-outline-variant hover:border-accent-food"
+            }`}
           >
-            Read our docs
-          </a>
+            Login as Admin
+          </button>
+        </div>
+
+        {/* Login Card */}
+        <div className="bg-arcade-surface rounded-xl arcade-card p-card-padding relative overflow-hidden">
+          {/* Decorative accent */}
+          <div className="absolute top-0 right-0 w-16 h-16 bg-accent-objects rounded-bl-full opacity-20" />
+
+          {/* Sub-toggle for user mode */}
+          {role === "user" && (
+            <div className="flex gap-2 mb-stack-gap">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("login");
+                  resetForm();
+                }}
+                className={`flex-1 py-2 rounded-lg font-label-caps text-sm uppercase transition-all ${
+                  mode === "login"
+                    ? "bg-accent-food text-on-primary"
+                    : "bg-surface-container text-on-surface-variant"
+                }`}
+              >
+                Login
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("signup");
+                  resetForm();
+                }}
+                className={`flex-1 py-2 rounded-lg font-label-caps text-sm uppercase transition-all ${
+                  mode === "signup"
+                    ? "bg-accent-food text-on-primary"
+                    : "bg-surface-container text-on-surface-variant"
+                }`}
+              >
+                Sign Up
+              </button>
+            </div>
+          )}
+
+          <h2 className="font-headline-lg text-headline-lg text-center mb-stack-gap text-on-surface">
+            {role === "admin"
+              ? "Welcome Back"
+              : mode === "signup"
+                ? "Create Account"
+                : "Welcome Back"}
+          </h2>
+
+          <form onSubmit={handleSubmit} className="space-y-stack-gap relative z-10">
+            {/* Name field — signup only */}
+            {role === "user" && mode === "signup" && (
+              <div>
+                <label
+                  className="block font-label-caps text-label-caps text-on-surface mb-unit"
+                  htmlFor="name"
+                >
+                  Name
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-outline">
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontVariationSettings: "'FILL' 1" }}
+                    >
+                      person
+                    </span>
+                  </span>
+                  <input
+                    className="w-full pl-10 pr-3 py-3 rounded-lg border-2 border-outline-variant bg-surface-container-lowest text-on-surface focus:border-primary focus:ring-0 transition-colors font-body-md"
+                    id="name"
+                    name="name"
+                    placeholder="Your name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Email */}
+            <div>
+              <label
+                className="block font-label-caps text-label-caps text-on-surface mb-unit"
+                htmlFor="email"
+              >
+                Email
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-outline">
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontVariationSettings: "'FILL' 1" }}
+                  >
+                    mail
+                  </span>
+                </span>
+                <input
+                  className="w-full pl-10 pr-3 py-3 rounded-lg border-2 border-outline-variant bg-surface-container-lowest text-on-surface focus:border-primary focus:ring-0 transition-colors font-body-md"
+                  id="email"
+                  name="email"
+                  placeholder={
+                    role === "admin" ? "admin@flipzy.edu" : "you@example.com"
+                  }
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div>
+              <label
+                className="block font-label-caps text-label-caps text-on-surface mb-unit"
+                htmlFor="password"
+              >
+                Password
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-outline">
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontVariationSettings: "'FILL' 1" }}
+                  >
+                    lock
+                  </span>
+                </span>
+                <input
+                  className="w-full pl-10 pr-3 py-3 rounded-lg border-2 border-outline-variant bg-surface-container-lowest text-on-surface focus:border-primary focus:ring-0 transition-colors font-body-md"
+                  id="password"
+                  name="password"
+                  placeholder="••••••••"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Error message */}
+            {error && (
+              <p className="text-error font-label-caps text-sm text-center">
+                {error}
+              </p>
+            )}
+
+            {/* Submit */}
+            <div className="pt-unit">
+              <button
+                className="w-full bg-accent-food text-on-primary font-label-caps text-label-caps py-4 rounded-xl chunky-btn uppercase border-2 border-on-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                style={{ '--tw-shadow-color': '#8B1717' } as React.CSSProperties}
+                type="submit"
+                disabled={loading}
+              >
+                {loading
+                  ? "Please wait..."
+                  : role === "admin"
+                    ? "Login"
+                    : mode === "signup"
+                      ? "Sign Up"
+                      : "Login"}
+                {!loading && (
+                  <span className="material-symbols-outlined">
+                    arrow_forward
+                  </span>
+                )}
+              </button>
+            </div>
+          </form>
+
+          {/* Forgot Password — login mode only */}
+          {mode === "login" && (
+            <div className="mt-6 text-center">
+              <a
+                className="font-body-md text-body-md text-primary hover:text-primary-container transition-colors font-bold"
+                href="#"
+              >
+                Forgot Password?
+              </a>
+            </div>
+          )}
+        </div>
+
+        {/* Decorative elements */}
+        <div className="absolute top-10 left-10 text-tertiary opacity-30 hidden md:block">
+          <span
+            className="material-symbols-outlined text-6xl"
+            style={{ fontVariationSettings: "'FILL' 1" }}
+          >
+            star
+          </span>
+        </div>
+        <div className="absolute bottom-10 right-10 text-secondary-container opacity-30 hidden md:block">
+          <span
+            className="material-symbols-outlined text-6xl"
+            style={{ fontVariationSettings: "'FILL' 1" }}
+          >
+            sports_esports
+          </span>
         </div>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
