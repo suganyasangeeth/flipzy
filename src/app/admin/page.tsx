@@ -81,6 +81,9 @@ export default function AdminPage() {
     topicName: string;
   } | null>(null);
 
+  const [dragTopicId, setDragTopicId] = useState<string | null>(null);
+  const [dragOverTopicId, setDragOverTopicId] = useState<string | null>(null);
+
   useEffect(() => {
     fetchSubjects();
   }, []);
@@ -206,6 +209,47 @@ export default function AdminPage() {
   async function handleLogout() {
     await supabase.auth.signOut();
     router.push("/");
+  }
+
+  function handleDragStart(e: React.DragEvent, topicId: string) {
+    setDragTopicId(topicId);
+    e.dataTransfer.effectAllowed = "move";
+  }
+
+  function handleDragOver(e: React.DragEvent, topicId: string) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverTopicId(topicId);
+  }
+
+  async function handleDrop(e: React.DragEvent, targetTopicId: string, subjectId: string) {
+    e.preventDefault();
+    setDragTopicId(null);
+    setDragOverTopicId(null);
+
+    if (!dragTopicId || dragTopicId === targetTopicId) return;
+
+    const currentTopics = topicsBySubject[subjectId] || [];
+    const draggedIdx = currentTopics.findIndex((t) => t.id === dragTopicId);
+    const targetIdx = currentTopics.findIndex((t) => t.id === targetTopicId);
+    if (draggedIdx === -1 || targetIdx === -1) return;
+
+    const reordered = [...currentTopics];
+    const [moved] = reordered.splice(draggedIdx, 1);
+    reordered.splice(targetIdx, 0, moved);
+
+    const updatedTopics = reordered.map((t, i) => ({ ...t, order: i + 1 }));
+    setTopicsBySubject((prev) => ({ ...prev, [subjectId]: updatedTopics }));
+
+    const updates = updatedTopics.map((t) =>
+      supabase.from("topics").update({ order: t.order }).eq("id", t.id)
+    );
+    await Promise.all(updates);
+  }
+
+  function handleDragEnd() {
+    setDragTopicId(null);
+    setDragOverTopicId(null);
   }
 
   return (
@@ -376,9 +420,21 @@ export default function AdminPage() {
                       {topics.map((topic) => (
                         <div
                           key={topic.id}
-                          className="bg-white rounded-xl border-2 border-outline-variant p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:border-primary transition-colors"
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, topic.id)}
+                          onDragOver={(e) => handleDragOver(e, topic.id)}
+                          onDrop={(e) => handleDrop(e, topic.id, subject.id)}
+                          onDragEnd={handleDragEnd}
+                          className={`bg-white rounded-xl border-2 p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-colors ${
+                            dragOverTopicId === topic.id
+                              ? "border-primary bg-primary/5"
+                              : "border-outline-variant hover:border-primary"
+                          } ${dragTopicId === topic.id ? "opacity-50" : ""}`}
                         >
                           <div className="flex items-center gap-3">
+                            <span className="material-symbols-outlined text-on-surface-variant cursor-grab active:cursor-grabbing">
+                              drag_indicator
+                            </span>
                             <div className="w-10 h-10 bg-surface-container rounded-lg flex items-center justify-center text-primary">
                               <span className="material-symbols-outlined">
                                 topic

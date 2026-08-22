@@ -35,12 +35,39 @@ export default function HomePage() {
 
   useEffect(() => {
     async function fetchSubjects() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: kid } = await supabase
+        .from("kid_accounts")
+        .select("id")
+        .eq("email", user.email)
+        .single();
+
       const { data } = await supabase
         .from("subjects")
         .select("id, name, color, icon, order")
         .eq("visible", true)
         .order("order", { ascending: true });
-      if (data && data.length > 0) setSubjects(data);
+
+      if (!data || data.length === 0) return;
+
+      if (kid) {
+        const { data: hidden } = await supabase
+          .from("kid_subject_visibility")
+          .select("subject_id")
+          .eq("kid_id", kid.id)
+          .eq("visible", false);
+
+        if (hidden && hidden.length > 0) {
+          const hiddenIds = new Set(hidden.map((h) => h.subject_id));
+          const filtered = data.filter((s) => !hiddenIds.has(s.id));
+          setSubjects(filtered.length > 0 ? filtered : FALLBACK_SUBJECTS);
+          return;
+        }
+      }
+
+      setSubjects(data);
     }
     fetchSubjects();
   }, []);

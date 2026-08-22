@@ -120,18 +120,31 @@ export default function KidDetailPage() {
   }
 
   async function toggleVis(subjectId: string) {
-    const cur = vis[subjectId] ?? false;
+    const cur = vis[subjectId] ?? true;
     const next = !cur;
     setVis((p) => ({ ...p, [subjectId]: next }));
-    const { error } = await supabase
-      .from("kid_subject_visibility")
-      .upsert(
-        { kid_id: kidId, subject_id: subjectId, visible: next },
-        { onConflict: "kid_id,subject_id" }
-      );
-    if (error) {
-      setVis((p) => ({ ...p, [subjectId]: cur }));
-      setMsg(error.message);
+
+    if (next) {
+      const { error } = await supabase
+        .from("kid_subject_visibility")
+        .delete()
+        .eq("kid_id", kidId)
+        .eq("subject_id", subjectId);
+      if (error) {
+        setVis((p) => ({ ...p, [subjectId]: cur }));
+        setMsg(error.message);
+      }
+    } else {
+      const { error } = await supabase
+        .from("kid_subject_visibility")
+        .upsert(
+          { kid_id: kidId, subject_id: subjectId, visible: false },
+          { onConflict: "kid_id,subject_id" }
+        );
+      if (error) {
+        setVis((p) => ({ ...p, [subjectId]: cur }));
+        setMsg(error.message);
+      }
     }
   }
 
@@ -282,7 +295,7 @@ export default function KidDetailPage() {
                         <input
                           type="checkbox"
                           className="sr-only peer"
-                          checked={vis[s.id] ?? false}
+                          checked={vis[s.id] ?? true}
                           onChange={() => toggleVis(s.id)}
                         />
                         <div className="w-14 h-7 bg-outline-variant rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-tertiary-fixed-dim border-2 border-tertiary" />
