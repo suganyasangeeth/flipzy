@@ -85,7 +85,7 @@ export default function FlashcardUploadDialog({
       return {
         cards: [],
         errors: [
-          'CSV must have "front_text" and "back_text" columns (also accepts "front"/"term" and "back"/"definition").',
+          'CSV must have "front_text" and "back_text" columns (also accepts "front"/"term" and "back"/"definition"). Fields containing commas must be wrapped in double quotes.',
         ],
       };
     }
@@ -192,7 +192,7 @@ export default function FlashcardUploadDialog({
   }
 
   function downloadTemplate() {
-    const csv = "front_text,back_text\nHello,Hi there\nCat,A small furry animal";
+    const csv = 'front_text,back_text\nHello,Hi there\n"A Plant grows, reproduces and so on.",Photosynthesis\n"The sun, moon, and stars",Celestial bodies';
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -361,6 +361,9 @@ export default function FlashcardUploadDialog({
                     <li>
                       Also accepts <strong>front/term</strong> and{" "}
                       <strong>back/definition</strong> as column names
+                    </li>
+                    <li className="text-primary font-semibold">
+                      Wrap fields containing commas in double quotes (e.g. &quot;Paris, France&quot;)
                     </li>
                   </ul>
                 </div>

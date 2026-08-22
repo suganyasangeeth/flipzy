@@ -192,27 +192,23 @@ export default function FlashcardPage() {
             }`}
           >
             {/* Front */}
-            <div className="absolute inset-0 backface-hidden bg-arcade-surface flex flex-col items-center justify-center p-container-padding shadow-2xl rounded-3xl">
-              <h2 className="text-headline-lg text-on-surface text-center px-4 md:px-12 leading-tight">
+            <div className="absolute inset-0 backface-hidden bg-arcade-surface flex flex-col items-center justify-center p-6 md:p-container-padding shadow-2xl rounded-3xl">
+              <h2 className="text-body-lg md:text-headline-lg text-on-surface text-center px-2 md:px-12 leading-tight break-words w-full">
                 {card.front_text}
               </h2>
-              <div className="absolute bottom-container-padding flex flex-col items-center opacity-70">
-                <span className="material-symbols-outlined animate-bounce text-headline-lg">
-                  touch_app
-                </span>
-                <span className="font-label-caps text-label-caps uppercase mt-2 font-headline-md">
-                  Tap to flip
+              <div className="absolute bottom-4 md:bottom-container-padding">
+                <span className="font-label-caps text-xs md:text-label-caps text-on-surface-variant uppercase opacity-60">
+                  Tap for answer
                 </span>
               </div>
             </div>
             {/* Back */}
-            <div className="absolute inset-0 backface-hidden rotate-y-180 bg-arcade-surface flex flex-col items-center justify-center p-container-padding shadow-2xl rounded-3xl">
-              <p className="text-body-lg text-on-surface text-center px-4 md:px-12 font-headline-md text-headline-lg">
+            <div className="absolute inset-0 backface-hidden rotate-y-180 bg-arcade-surface flex flex-col items-center justify-center p-6 md:p-container-padding shadow-2xl rounded-3xl">
+              <p className="text-body-lg md:text-headline-lg text-on-surface text-center px-2 md:px-12 leading-tight break-words w-full">
                 {card.back_text}
               </p>
-              <div className="absolute bottom-container-padding flex flex-col items-center opacity-70">
-                <span className="material-symbols-outlined text-headline-lg">undo</span>
-                <span className="font-label-caps text-label-caps uppercase mt-2 font-headline-md">
+              <div className="absolute bottom-4 md:bottom-container-padding">
+                <span className="font-label-caps text-xs md:text-label-caps text-on-surface-variant uppercase opacity-60">
                   Tap to flip back
                 </span>
               </div>
