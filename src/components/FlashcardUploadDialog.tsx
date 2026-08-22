@@ -33,6 +33,39 @@ export default function FlashcardUploadDialog({
   } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  function parseCSVLine(line: string): string[] {
+    const cols: string[] = [];
+    let current = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQuotes) {
+        if (ch === '"') {
+          if (i + 1 < line.length && line[i + 1] === '"') {
+            current += '"';
+            i++;
+          } else {
+            inQuotes = false;
+          }
+        } else {
+          current += ch;
+        }
+      } else {
+        if (ch === '"') {
+          inQuotes = true;
+        } else if (ch === ",") {
+          cols.push(current.trim());
+          current = "";
+        } else {
+          current += ch;
+        }
+      }
+    }
+    cols.push(current.trim());
+    return cols;
+  }
+
   function parseCSV(text: string): { cards: ParsedCard[]; errors: string[] } {
     const lines = text.split(/\r?\n/).filter((l) => l.trim());
     const parseErrors: string[] = [];
@@ -57,7 +90,7 @@ export default function FlashcardUploadDialog({
       };
     }
 
-    const headers = lines[0].split(",").map((h) => h.trim().toLowerCase().replace(/"/g, ""));
+    const headers = parseCSVLine(lines[0]).map((h) => h.toLowerCase().replace(/^"|"$/g, ""));
     const frontIdx = headers.findIndex(
       (h) => h === "front_text" || h === "front" || h === "term"
     );
@@ -66,9 +99,17 @@ export default function FlashcardUploadDialog({
     );
 
     for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
-      const front = cols[frontIdx] || "";
-      const back = cols[backIdx] || "";
+      const raw = parseCSVLine(lines[i]);
+      let cols: string[];
+      if (raw.length > headers.length) {
+        const merged = raw.slice(0, headers.length - 1);
+        merged.push(raw.slice(headers.length - 1).join(", "));
+        cols = merged;
+      } else {
+        cols = raw;
+      }
+      const front = (cols[frontIdx] || "").replace(/^"|"$/g, "");
+      const back = (cols[backIdx] || "").replace(/^"|"$/g, "");
 
       if (!front && !back) continue;
 

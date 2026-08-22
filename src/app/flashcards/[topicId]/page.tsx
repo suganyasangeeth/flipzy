@@ -193,7 +193,7 @@ export default function FlashcardPage() {
           >
             {/* Front */}
             <div className="absolute inset-0 backface-hidden bg-arcade-surface flex flex-col items-center justify-center p-container-padding shadow-2xl rounded-3xl">
-              <h2 className="font-display-hero text-on-surface text-center font-headline-lg text-[clamp(2rem,8vw,6rem)] leading-tight">
+              <h2 className="text-headline-lg text-on-surface text-center px-4 md:px-12 leading-tight">
                 {card.front_text}
               </h2>
               <div className="absolute bottom-container-padding flex flex-col items-center opacity-70">
