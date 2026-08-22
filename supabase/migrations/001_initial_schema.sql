@@ -82,21 +82,14 @@ RETURNS UUID AS $$
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
 -- ---- subjects ----
--- Admins see all; kids see only subjects visible to them via kid_subject_visibility
+-- Admins see all; kids see all globally-visible subjects.
+-- Per-kid hiding is handled client-side via kid_subject_visibility.
 CREATE POLICY "Subjects visible to kids"
   ON subjects FOR SELECT
   TO authenticated
   USING (
     is_admin()
-    OR (
-      visible = true
-      AND EXISTS (
-        SELECT 1 FROM kid_subject_visibility
-        WHERE kid_subject_visibility.subject_id = subjects.id
-          AND kid_subject_visibility.kid_id = get_kid_id()
-          AND kid_subject_visibility.visible = true
-      )
-    )
+    OR visible = true
   );
 
 -- Only admins can insert/update/delete subjects
