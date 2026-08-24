@@ -364,7 +364,7 @@ export default function AdminPage() {
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-stack-gap">
             {subjects.map((subject) => {
               const topics = topicsBySubject[subject.id] || [];
-              const isExpanded = expanded[subject.id] !== false;
+              const isExpanded = expanded[subject.id] === true;
               return (
                 <div
                   key={subject.id}
