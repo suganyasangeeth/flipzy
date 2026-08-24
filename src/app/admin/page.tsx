@@ -361,7 +361,7 @@ export default function AdminPage() {
           </div>
 
           {/* Subject cards grid */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-stack-gap">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-stack-gap items-start">
             {subjects.map((subject) => {
               const topics = topicsBySubject[subject.id] || [];
               const isExpanded = expanded[subject.id] === true;
@@ -435,7 +435,7 @@ export default function AdminPage() {
 
                   {/* Topics list */}
                   {isExpanded && (
-                    <div className="p-card-padding flex flex-col gap-4 bg-white/50 flex-1">
+                    <div className="p-card-padding flex flex-col gap-4 bg-white/50">
                       {topics.map((topic) => (
                         <div
                           key={topic.id}
