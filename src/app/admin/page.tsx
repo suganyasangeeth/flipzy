@@ -11,6 +11,7 @@ interface Topic {
   name: string;
   description: string;
   order: number;
+  flashcard_count?: number;
 }
 
 interface Subject {
@@ -106,7 +107,25 @@ export default function AdminPage() {
       .eq("subject_id", subjectId)
       .order("order", { ascending: true });
     if (data) {
-      setTopicsBySubject((prev) => ({ ...prev, [subjectId]: data }));
+      const topicIds = data.map((t) => t.id);
+      const { data: counts } = await supabase
+        .from("flashcards")
+        .select("topic_id")
+        .in("topic_id", topicIds)
+        .eq("status", "published");
+
+      const countMap: Record<string, number> = {};
+      if (counts) {
+        counts.forEach((c) => {
+          countMap[c.topic_id] = (countMap[c.topic_id] || 0) + 1;
+        });
+      }
+
+      const enriched = data.map((t) => ({
+        ...t,
+        flashcard_count: countMap[t.id] || 0,
+      }));
+      setTopicsBySubject((prev) => ({ ...prev, [subjectId]: enriched }));
     }
   }
 
@@ -425,33 +444,44 @@ export default function AdminPage() {
                           onDragOver={(e) => handleDragOver(e, topic.id)}
                           onDrop={(e) => handleDrop(e, topic.id, subject.id)}
                           onDragEnd={handleDragEnd}
-                          className={`bg-white rounded-xl border-2 p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-colors ${
+                          className={`bg-white rounded-xl border-2 p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 transition-colors ${
                             dragOverTopicId === topic.id
                               ? "border-primary bg-primary/5"
                               : "border-outline-variant hover:border-primary"
                           } ${dragTopicId === topic.id ? "opacity-50" : ""}`}
                         >
-                          <div className="flex items-center gap-3">
-                            <span className="material-symbols-outlined text-on-surface-variant cursor-grab active:cursor-grabbing">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="material-symbols-outlined text-on-surface-variant cursor-grab active:cursor-grabbing shrink-0">
                               drag_indicator
                             </span>
-                            <div className="w-10 h-10 bg-surface-container rounded-lg flex items-center justify-center text-primary">
+                            <div className="w-10 h-10 bg-surface-container rounded-lg flex items-center justify-center text-primary shrink-0">
                               <span className="material-symbols-outlined">
                                 topic
                               </span>
                             </div>
-                            <div>
-                              <h4 className="font-headline-md text-headline-md text-on-surface">
+                            <div className="min-w-0">
+                              <h4 className="font-headline-md text-headline-md text-on-surface truncate">
                                 {topic.name}
                               </h4>
                               {topic.description && (
-                                <p className="font-body-md text-body-md text-on-surface-variant text-sm">
+                                <p className="font-body-md text-on-surface-variant text-sm truncate">
                                   {topic.description}
                                 </p>
                               )}
                             </div>
+                            <span
+                              className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-label-caps border ${
+                                (topic.flashcard_count ?? 0) > 0
+                                  ? "bg-tertiary-fixed text-on-tertiary-fixed border-tertiary"
+                                  : "bg-outline-variant/30 text-on-surface-variant border-outline-variant"
+                              }`}
+                            >
+                              {(topic.flashcard_count ?? 0) > 0
+                                ? `${topic.flashcard_count} card${(topic.flashcard_count ?? 0) !== 1 ? "s" : ""}`
+                                : "No cards"}
+                            </span>
                           </div>
-                          <div className="flex items-center gap-2 w-full md:w-auto">
+                          <div className="flex items-center gap-2 flex-wrap justify-end">
                             <button
                               onClick={() =>
                                 setFlashcardDialog({
@@ -459,7 +489,7 @@ export default function AdminPage() {
                                   topicName: topic.name,
                                 })
                               }
-                              className="flex-1 md:flex-none bg-surface-variant text-primary px-4 py-2 rounded-lg font-label-caps text-label-caps text-sm border-2 border-transparent hover:border-primary transition-all flex items-center justify-center gap-2"
+                              className="bg-surface-variant text-primary px-4 py-2 rounded-lg font-label-caps text-label-caps text-sm border-2 border-transparent hover:border-primary transition-all flex items-center justify-center gap-2"
                             >
                               <span className="material-symbols-outlined text-sm">
                                 upload_file
