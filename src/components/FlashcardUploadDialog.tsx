@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Papa from "papaparse";
 import { supabase } from "@/lib/supabase/client";
 
 interface ParsedCard {
@@ -33,92 +34,58 @@ export default function FlashcardUploadDialog({
   } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  function parseCSVLine(line: string): string[] {
-    const cols: string[] = [];
-    let current = "";
-    let inQuotes = false;
-
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (inQuotes) {
-        if (ch === '"') {
-          if (i + 1 < line.length && line[i + 1] === '"') {
-            current += '"';
-            i++;
-          } else {
-            inQuotes = false;
-          }
-        } else {
-          current += ch;
-        }
-      } else {
-        if (ch === '"') {
-          inQuotes = true;
-        } else if (ch === ",") {
-          cols.push(current.trim());
-          current = "";
-        } else {
-          current += ch;
-        }
-      }
-    }
-    cols.push(current.trim());
-    return cols;
-  }
-
   function parseCSV(text: string): { cards: ParsedCard[]; errors: string[] } {
-    const lines = text.split(/\r?\n/).filter((l) => l.trim());
     const parseErrors: string[] = [];
     const cards: ParsedCard[] = [];
 
-    if (lines.length < 2) {
-      return { cards: [], errors: ["CSV file is empty or has no data rows."] };
+    const result = Papa.parse(text, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (h: string) => h.trim().toLowerCase().replace(/^"|"$/g, ""),
+    });
+
+    if (result.errors.length > 0) {
+      result.errors.forEach((e) => {
+        parseErrors.push(`Row ${e.row ?? "?"}: ${e.message}`);
+      });
     }
 
-    const header = lines[0].toLowerCase();
-    const hasFrontHeader =
-      header.includes("front_text") || header.includes("front") || header.includes("term");
-    const hasBackHeader =
-      header.includes("back_text") || header.includes("back") || header.includes("definition");
+    const fields = result.meta.fields ?? [];
+    const frontKey = fields.find(
+      (f) => f === "front_text" || f === "front" || f === "term"
+    );
+    const backKey = fields.find(
+      (f) => f === "back_text" || f === "back" || f === "definition"
+    );
 
-    if (!hasFrontHeader || !hasBackHeader) {
+    if (!frontKey || !backKey) {
       return {
         cards: [],
         errors: [
-          'CSV must have "front_text" and "back_text" columns (also accepts "front"/"term" and "back"/"definition"). Fields containing commas must be wrapped in double quotes.',
+          'CSV must have "front_text" and "back_text" columns (also accepts "front"/"term" and "back"/"definition").',
         ],
       };
     }
 
-    const headers = parseCSVLine(lines[0]).map((h) => h.toLowerCase().replace(/^"|"$/g, ""));
-    const frontIdx = headers.findIndex(
-      (h) => h === "front_text" || h === "front" || h === "term"
-    );
-    const backIdx = headers.findIndex(
-      (h) => h === "back_text" || h === "back" || h === "definition"
-    );
+    const rows = result.data as Record<string, string>[];
 
-    for (let i = 1; i < lines.length; i++) {
-      const raw = parseCSVLine(lines[i]);
-      let cols: string[];
-      if (raw.length > headers.length) {
-        const merged = raw.slice(0, headers.length - 1);
-        merged.push(raw.slice(headers.length - 1).join(", "));
-        cols = merged;
-      } else {
-        cols = raw;
-      }
-      const front = (cols[frontIdx] || "").replace(/^"|"$/g, "");
-      const back = (cols[backIdx] || "").replace(/^"|"$/g, "");
+    if (rows.length === 0) {
+      return { cards: [], errors: ["CSV file is empty or has no data rows."] };
+    }
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const front = (row[frontKey] ?? "").trim();
+      const back = (row[backKey] ?? "").trim();
 
       if (!front && !back) continue;
 
       if (!front) {
-        parseErrors.push(`Row ${i + 1}: Missing front text (term).`);
+        parseErrors.push(`Row ${i + 2}: Missing front text (term).`);
         continue;
       }
       if (!back) {
-        parseErrors.push(`Row ${i + 1}: Missing back text (definition).`);
+        parseErrors.push(`Row ${i + 2}: Missing back text (definition).`);
         continue;
       }
 
