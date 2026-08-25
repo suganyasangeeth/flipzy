@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 760">
+<g fill="#071B37" stroke="#071B37" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="110" y="115" width="220" height="270" rx="42" transform="rotate(-12 220 250)"/>
+  <rect x="194" y="128" width="220" height="270" rx="42" transform="rotate(14 304 262)"/>
+  <path d="M105 106 C142 54 205 40 257 62" fill="none" stroke-width="18"/>
+  <path d="M248 37 L271 65 L238 70" fill="none" stroke-width="18"/>
+  <path d="M394 409 C361 462 296 476 244 454" fill="none" stroke-width="18"/>
+  <path d="M254 480 L231 451 L264 446" fill="none" stroke-width="18"/>
+  <path d="M439 250 L461 228 M450 280 L478 276 M426 222 L436 194" fill="none" stroke-width="16"/>
+</g>
+<text x="350" y="700" text-anchor="middle" font-family="Arial Rounded MT Bold, Trebuchet MS, DejaVu Sans, sans-serif" font-size="108" font-weight="800" letter-spacing="5" fill="#071B37">FLIPZY</text>
+</svg>

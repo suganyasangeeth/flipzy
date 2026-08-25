@@ -7,15 +7,25 @@ export const metadata: Metadata = {
   description:
     "A fun, arcade-style vocabulary flashcard app that makes learning words exciting for kids.",
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/favicon-16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Flipzy",
+    title: "FLIPZY",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#A81D1D",
+  themeColor: "#071B37",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,

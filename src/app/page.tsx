@@ -86,9 +86,11 @@ export default function LoginPage() {
       <main className="w-full max-w-md relative">
         {/* Logo */}
         <div className="text-center mb-8">
-          <h1 className="font-display-hero text-display-hero text-primary uppercase tracking-tighter drop-shadow-md">
-            Flipzy
-          </h1>
+          <img
+            src="/brand/flipzy-logo-primary.svg"
+            alt="Flipzy"
+            className="h-20 md:h-24 mx-auto"
+          />
           <p className="font-label-caps text-label-caps text-on-surface-variant mt-2">
             {role === "admin" ? "Admin Portal" : "Kid Login"}
           </p>

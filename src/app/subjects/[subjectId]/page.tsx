@@ -72,9 +72,11 @@ export default function TopicSelectorPage() {
     <div className="bg-background text-on-background min-h-screen flex flex-col font-body-md select-none">
       {/* Header */}
       <header className="w-full absolute top-0 z-40 bg-transparent flex justify-between items-center px-8 h-24">
-        <div className="font-display-hero text-headline-md text-primary">
-          FLIPZY
-        </div>
+        <img
+          src="/brand/flipzy-logo-horizontal.svg"
+          alt="Flipzy"
+          className="h-10"
+        />
         <button
           onClick={() => router.push("/profile")}
           className="flex items-center gap-2 bg-surface-container-highest rounded-full px-6 py-3 shadow-arcade-ambient text-primary hover:bg-surface-variant transition-colors active:translate-y-0.5 active:shadow-none"

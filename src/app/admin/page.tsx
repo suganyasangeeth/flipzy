@@ -276,6 +276,11 @@ export default function AdminPage() {
       {/* Sidebar */}
       <nav className="hidden md:flex flex-col h-screen p-unit gap-stack-gap bg-arcade-surface w-72 border-r-4 border-primary sticky top-0 z-50">
         <div className="px-gutter pt-gutter pb-4">
+          <img
+            src="/brand/flipzy-logo-horizontal.svg"
+            alt="Flipzy"
+            className="h-8 mb-2"
+          />
           <h1 className="font-headline-lg text-headline-lg text-primary uppercase">
             Admin Panel
           </h1>
