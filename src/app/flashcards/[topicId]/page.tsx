@@ -112,30 +112,16 @@ export default function FlashcardPage() {
         <header className="w-full bg-arcade-surface border-b-2 border-arcade-border flex items-center px-4 md:px-6 h-16 md:h-20 shrink-0">
           <button
             onClick={() => router.push(`/subjects/${subject?.id || ""}`)}
-            className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full bg-surface-container-lowest border-2 border-outline-variant text-on-surface shrink-0"
+            className="flex items-center gap-2 bg-surface-container-highest rounded-full px-4 py-2 border border-outline-variant text-primary hover:bg-surface-variant transition-colors active:translate-y-0.5"
           >
-            <span className="material-symbols-outlined text-base md:text-headline-md">arrow_back</span>
+            <span className="material-symbols-outlined text-lg">arrow_back</span>
+            <span className="font-label-caps text-xs hidden md:inline">Back</span>
           </button>
           <img
             src="/brand/flipzy-logo-horizontal.svg"
             alt="Flipzy"
-            className="h-6 md:h-8 ml-3"
+            className="h-8 md:h-10 ml-4"
           />
-          <div className="flex items-center gap-2 ml-auto">
-            {subject && (
-              <div className="flex items-center gap-1.5">
-                <div
-                  className="w-5 h-5 md:w-6 md:h-6 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: subject.color }}
-                >
-                  <span className="material-symbols-outlined text-xs md:text-sm" style={{ fontVariationSettings: "'FILL' 1", color: getIconColor(subject.color) }}>
-                    {subject.icon}
-                  </span>
-                </div>
-                <span className="font-label-caps text-xs text-on-surface-variant hidden md:inline">{subject.name}</span>
-              </div>
-            )}
-          </div>
         </header>
         <main className="flex-1 flex flex-col items-center justify-center p-6">
           <span className="material-symbols-outlined text-6xl text-outline-variant mb-4">inventory_2</span>
@@ -193,55 +179,61 @@ export default function FlashcardPage() {
 
   return (
     <div className="bg-background min-h-screen flex flex-col font-display-hero select-none">
-      {/* Header */}
+      {/* Header — clean: back pill + logo only */}
       <header className="w-full bg-arcade-surface border-b-2 border-arcade-border flex items-center px-4 md:px-6 h-16 md:h-20 shrink-0">
         <button
           onClick={() => router.push(`/subjects/${subject?.id || ""}`)}
-          className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full bg-surface-container-lowest border-2 border-outline-variant text-on-surface shrink-0"
+          className="flex items-center gap-2 bg-surface-container-highest rounded-full px-4 py-2 border border-outline-variant text-primary hover:bg-surface-variant transition-colors active:translate-y-0.5"
         >
-          <span className="material-symbols-outlined text-base md:text-headline-md">arrow_back</span>
+          <span className="material-symbols-outlined text-lg">arrow_back</span>
+          <span className="font-label-caps text-xs hidden md:inline">Back</span>
         </button>
         <img
           src="/brand/flipzy-logo-horizontal.svg"
           alt="Flipzy"
-          className="h-6 md:h-8 ml-3"
+          className="h-8 md:h-10 ml-4"
         />
-        <div className="flex items-center gap-2 ml-3">
+      </header>
+
+      {/* Subject chip breadcrumb */}
+      <div className="w-full flex justify-center px-4 pt-3 md:pt-4">
+        <div className="flex items-center gap-2 bg-surface-container-highest rounded-full px-4 py-1.5 border border-outline-variant">
           {subject && (
-            <div className="flex items-center gap-1.5">
+            <>
               <div
-                className="w-5 h-5 md:w-6 md:h-6 rounded-full flex items-center justify-center"
+                className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
                 style={{ backgroundColor: subject.color }}
               >
-                <span className="material-symbols-outlined text-xs md:text-sm" style={{ fontVariationSettings: "'FILL' 1", color: getIconColor(subject.color) }}>
+                <span className="material-symbols-outlined text-[10px]" style={{ fontVariationSettings: "'FILL' 1", color: getIconColor(subject.color) }}>
                   {subject.icon}
                 </span>
               </div>
-              <span className="font-label-caps text-xs text-on-surface-variant hidden md:inline">{subject.name}</span>
-              <span className="material-symbols-outlined text-xs text-outline-variant hidden md:inline">chevron_right</span>
-            </div>
+              <span className="font-label-caps text-xs text-on-surface-variant">{subject.name}</span>
+              <span className="material-symbols-outlined text-xs text-outline-variant">chevron_right</span>
+            </>
           )}
-          <span className="font-label-caps text-xs md:text-sm text-on-surface-variant truncate max-w-[120px] md:max-w-none">{topic?.name}</span>
+          <span className="font-label-caps text-xs text-on-surface font-semibold truncate max-w-[140px] md:max-w-none">{topic?.name}</span>
         </div>
-        <div className="flex flex-col items-center justify-center gap-1 md:gap-2 flex-1 mx-2 md:mx-4">
-          <div className="font-headline-md text-sm md:text-headline-md text-on-surface text-center">
-            {currentIndex + 1} / {cards.length}
-          </div>
-          <div className="w-full max-w-xs md:max-w-sm h-3 md:h-4 bg-arcade-border rounded-full border-1 md:border-2 overflow-hidden relative">
-            <div
-              className="h-full bg-primary absolute left-0 top-0 transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
-        <div className="w-10 md:w-14 shrink-0" />
-      </header>
+      </div>
 
-      {/* Main */}
-      <main className="flex-1 flex flex-col items-center justify-center p-6 max-w-3xl mx-auto w-full">
+      {/* Progress bar — centered below header */}
+      <div className="w-full flex flex-col items-center gap-1.5 md:gap-2 px-4 pt-3 md:pt-4 pb-2">
+        <div className="font-headline-md text-sm md:text-headline-md text-on-surface text-center">
+          {currentIndex + 1} / {cards.length}
+        </div>
+        <div className="w-full max-w-md h-3 md:h-4 bg-arcade-border rounded-full border-1 md:border-2 overflow-hidden relative">
+          <div
+            className="h-full bg-primary absolute left-0 top-0 transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Main — card + controls stacked top-to-bottom */}
+      <main className="flex-1 flex flex-col items-center px-4 md:px-6 pt-2 md:pt-4 pb-6 md:pb-8 max-w-3xl mx-auto w-full">
         {/* Flashcard */}
         <div
-          className="w-full aspect-[4/3] md:aspect-[3/2] perspective-1000 mb-stack-gap cursor-pointer group"
+          className="w-full aspect-[4/3] md:aspect-[5/3] perspective-1000 mb-4 md:mb-6 cursor-pointer group"
           onClick={() => setFlipped(!flipped)}
         >
           <div
@@ -251,7 +243,6 @@ export default function FlashcardPage() {
           >
             {/* Front */}
             <div className="absolute inset-0 backface-hidden bg-arcade-surface flex flex-col items-center justify-center p-6 md:p-container-padding shadow-2xl rounded-3xl border-2 border-arcade-border border-t-4 border-primary transition-all duration-200 group-hover:scale-[1.01]">
-              {/* Corner decoration */}
               <div className="absolute top-3 right-3 md:top-4 md:right-4">
                 <span className="material-symbols-outlined text-lg md:text-xl text-primary/20" style={{ fontVariationSettings: "'FILL' 1" }}>
                   auto_awesome
@@ -286,18 +277,18 @@ export default function FlashcardPage() {
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-between w-full max-w-sm mt-4 md:mt-stack-gap gap-3 md:gap-stack-gap mb-6 md:mb-12">
+        <div className="flex items-center justify-between w-full max-w-sm gap-3 md:gap-4">
           <button
             onClick={goPrev}
             disabled={currentIndex === 0}
-            className="flex-1 h-14 md:h-20 bg-surface-container-lowest rounded-full flex items-center justify-center gap-2 text-on-surface font-headline-md text-sm md:text-headline-md uppercase transition-transform shadow-2xl disabled:opacity-40 disabled:cursor-not-allowed border-2 border-outline-variant hover:translate-y-0.5"
+            className="flex-1 h-12 md:h-16 bg-surface-container-lowest rounded-full flex items-center justify-center gap-2 text-on-surface font-headline-md text-sm md:text-headline-md uppercase transition-transform shadow-lg disabled:opacity-40 disabled:cursor-not-allowed border-2 border-outline-variant hover:translate-y-0.5"
           >
             <span className="material-symbols-outlined text-lg md:text-xl">arrow_back_ios</span>
             Prev
           </button>
           <button
             onClick={goNext}
-            className="flex-1 h-14 md:h-20 bg-primary rounded-full flex items-center justify-center gap-2 text-on-primary font-headline-md text-sm md:text-headline-md uppercase transition-transform shadow-2xl chunky-btn border-2 md:border-4 border-on-primary/20 hover:translate-y-0.5"
+            className="flex-1 h-12 md:h-16 bg-primary rounded-full flex items-center justify-center gap-2 text-on-primary font-headline-md text-sm md:text-headline-md uppercase transition-transform shadow-lg chunky-btn border-2 md:border-4 border-on-primary/20 hover:translate-y-0.5"
           >
             {currentIndex === cards.length - 1 ? "Finish" : "Next"}
             <span className="material-symbols-outlined text-lg md:text-xl">arrow_forward_ios</span>

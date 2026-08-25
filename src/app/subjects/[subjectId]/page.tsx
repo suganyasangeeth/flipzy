@@ -100,21 +100,19 @@ export default function TopicSelectorPage() {
       </header>
 
       {/* Main Content */}
-      <main className="w-full px-4 md:px-container-padding flex-grow pt-6 md:pt-10 pb-container-padding">
-        <div className="flex flex-col items-center w-full max-w-4xl mx-auto">
-          {/* Back arrow */}
-          <div className="w-full mb-3 md:mb-6">
-            <button
-              onClick={() => router.push("/home")}
-              className="flex items-center gap-2 text-primary hover:text-primary-container transition-colors"
-            >
-              <span className="material-symbols-outlined">arrow_back</span>
-              <span className="font-label-caps text-xs md:text-label-caps">Back</span>
-            </button>
-          </div>
+      <main className="w-full px-4 md:px-container-padding flex-grow pt-4 md:pt-6 pb-container-padding">
+        <div className="flex flex-col items-start w-full max-w-4xl mx-auto">
+          {/* Back pill */}
+          <button
+            onClick={() => router.push("/home")}
+            className="flex items-center gap-2 bg-surface-container-highest rounded-full px-4 py-2 border border-outline-variant text-primary hover:bg-surface-variant transition-colors mb-4 md:mb-6 active:translate-y-0.5"
+          >
+            <span className="material-symbols-outlined text-lg">arrow_back</span>
+            <span className="font-label-caps text-xs hidden md:inline">Back</span>
+          </button>
 
           {/* Subject heading */}
-          <div className="flex flex-col items-center gap-3 md:gap-4 mb-6 md:mb-10 text-center">
+          <div className="flex flex-col items-center gap-3 md:gap-4 mb-6 md:mb-10 text-center w-full">
             <div
               className="w-16 h-16 md:w-22 md:h-22 rounded-full border-2 border-primary/20 flex items-center justify-center shadow-card-ambient"
               style={{ backgroundColor: subject.color }}
