@@ -74,47 +74,47 @@ export default function HomePage() {
 
   return (
     <div className="bg-background text-on-surface min-h-screen flex flex-col font-display-hero select-none">
-      <header className="w-full absolute top-0 z-40 bg-transparent flex justify-between items-center px-8 h-24">
+      <header className="w-full absolute top-0 z-40 bg-transparent flex justify-between items-center px-4 md:px-8 h-16 md:h-20">
         <img
           src="/brand/flipzy-logo-horizontal.svg"
           alt="Flipzy"
-          className="h-10"
+          className="h-8 md:h-12"
         />
         <button
           onClick={() => router.push("/profile")}
-          className="flex items-center gap-2 bg-surface-container-highest rounded-full px-6 py-3 shadow-arcade-ambient text-primary hover:bg-surface-variant transition-colors active:translate-y-0.5 active:shadow-card-ambient-active"
+          className="flex items-center gap-2 bg-surface-container-highest rounded-full px-4 md:px-6 py-2 md:py-3 shadow-arcade-ambient text-primary hover:bg-surface-variant transition-colors active:translate-y-0.5 active:shadow-card-ambient-active"
         >
-          <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
+          <span className="material-symbols-outlined text-xl md:text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
             person
           </span>
-          <span className="font-label-caps text-label-caps">Profile</span>
+          <span className="font-label-caps text-xs md:text-label-caps">Profile</span>
         </button>
       </header>
 
-      <main className="w-full px-container-padding flex-grow flex items-center justify-center pt-24 pb-container-padding">
+      <main className="w-full px-4 md:px-container-padding flex-grow flex items-center justify-center pt-20 md:pt-24 pb-container-padding">
         <div className="flex flex-col items-center w-full max-w-4xl mx-auto">
-          <div className="flex flex-col items-center gap-2 mb-8 text-center">
-            <h1 className="font-display-hero text-headline-lg text-primary">
+          <div className="flex flex-col items-center gap-1 md:gap-2 mb-4 md:mb-8 text-center">
+            <h1 className="font-display-hero text-headline-md md:text-headline-lg text-primary">
               Hi there
             </h1>
-            <p className="font-headline-md text-body-lg text-on-surface-variant">
+            <p className="font-headline-md text-sm md:text-body-lg text-on-surface-variant">
               Pick a subject to start learning
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-8 w-full">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6 w-full">
             {subjects.map((subject) => (
               <button
                 key={subject.id}
                 onClick={() => router.push(`/subjects/${subject.id}`)}
-                className="bg-arcade-surface rounded-3xl p-8 flex flex-col items-center justify-center gap-6 transition-transform duration-100 ease-in-out shadow-card-ambient active:translate-y-0.5 active:shadow-card-ambient-active"
+                className="bg-arcade-surface rounded-2xl md:rounded-3xl p-4 md:p-8 flex flex-col items-center justify-center gap-3 md:gap-6 aspect-square transition-transform duration-100 ease-in-out shadow-card-ambient active:translate-y-0.5 active:shadow-card-ambient-active"
               >
                 <div
-                  className="w-24 h-24 rounded-2xl flex items-center justify-center"
+                  className="w-16 h-16 md:w-24 md:h-24 rounded-xl md:rounded-2xl flex items-center justify-center"
                   style={{ backgroundColor: subject.color }}
                 >
                   <span
-                    className="material-symbols-outlined text-[56px]"
+                    className="material-symbols-outlined text-4xl md:text-[56px]"
                     style={{
                       fontVariationSettings: "'FILL' 1",
                       color: getIconColor(subject.color),
@@ -123,7 +123,7 @@ export default function HomePage() {
                     {subject.icon}
                   </span>
                 </div>
-                <span className="font-headline-md text-headline-md text-on-surface">
+                <span className="font-headline-md text-sm md:text-headline-md text-on-surface">
                   {subject.name}
                 </span>
               </button>

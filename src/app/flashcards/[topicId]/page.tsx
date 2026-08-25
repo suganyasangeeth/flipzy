@@ -93,14 +93,14 @@ export default function FlashcardPage() {
   if (cards.length === 0) {
     return (
       <div className="bg-background min-h-screen flex flex-col">
-        <header className="w-full flex items-center px-6 h-20 border-b-4 border-outline-variant bg-arcade-surface">
+        <header className="w-full flex items-center px-4 md:px-6 h-16 md:h-20 border-b-2 md:border-b-4 border-outline-variant bg-arcade-surface">
           <button
             onClick={() => router.push(`/subjects/${subject?.id || ""}`)}
-            className="w-14 h-14 flex items-center justify-center rounded-full bg-surface-container-lowest border-4 border-outline-variant text-on-surface"
+            className="w-10 h-10 md:w-14 md:h-14 flex items-center justify-center rounded-full bg-surface-container-lowest border-2 md:border-4 border-outline-variant text-on-surface"
           >
-            <span className="material-symbols-outlined text-headline-md">arrow_back</span>
+            <span className="material-symbols-outlined text-base md:text-headline-md">arrow_back</span>
           </button>
-          <h1 className="font-headline-lg text-headline-lg text-on-surface ml-4 hidden md:block">
+          <h1 className="font-headline-lg text-headline-lg text-on-surface ml-3 md:ml-4 hidden md:block">
             {subject?.name || "Topic"}
           </h1>
         </header>
@@ -120,27 +120,27 @@ export default function FlashcardPage() {
   // Completion screen
   if (completed) {
     return (
-      <div className="bg-background min-h-screen flex flex-col items-center justify-center p-8">
-        <article className="bg-arcade-surface rounded-3xl p-container-padding py-24 flex flex-col items-center justify-center text-center shadow-card-ambient w-full max-w-2xl">
-          <h1 className="font-display-hero text-display-hero text-on-surface uppercase tracking-wider mb-4">
+      <div className="bg-background min-h-screen flex flex-col items-center justify-center p-4 md:p-8">
+        <article className="bg-arcade-surface rounded-2xl md:rounded-3xl p-6 md:p-container-padding py-12 md:py-24 flex flex-col items-center justify-center text-center shadow-card-ambient w-full max-w-2xl">
+          <h1 className="font-display-hero text-headline-lg md:text-display-hero text-on-surface uppercase tracking-wider mb-2 md:mb-4">
             Great Job!
           </h1>
-          <p className="font-headline-lg text-headline-lg text-on-surface mb-12">
+          <p className="font-headline-lg text-base md:text-headline-lg text-on-surface mb-6 md:mb-12">
             You completed the session!
           </p>
-          <div className="flex flex-col w-full max-w-sm gap-stack-gap">
+          <div className="flex flex-col w-full max-w-sm gap-3 md:gap-stack-gap">
             <button
               onClick={playAgain}
-              className="w-full h-20 bg-primary rounded-full flex items-center justify-center gap-2 text-on-primary font-headline-md text-headline-md uppercase transition-transform hover:scale-105 active:scale-95 chunky-btn border-4 border-on-primary/20"
+              className="w-full h-14 md:h-20 bg-primary rounded-full flex items-center justify-center gap-2 text-on-primary font-headline-md text-sm md:text-headline-md uppercase transition-transform hover:scale-105 active:scale-95 chunky-btn border-2 md:border-4 border-on-primary/20"
             >
-              <span className="material-symbols-outlined text-[32px]">replay</span>
+              <span className="material-symbols-outlined text-2xl md:text-[32px]">replay</span>
               Play Again
             </button>
             <button
               onClick={() => router.push(`/subjects/${subject?.id || ""}`)}
-              className="w-full h-20 bg-arcade-surface rounded-full flex items-center justify-center gap-2 text-primary font-headline-md text-headline-md uppercase transition-transform hover:scale-105 active:scale-95 border-2 border-primary shadow-card-ambient"
+              className="w-full h-14 md:h-20 bg-arcade-surface rounded-full flex items-center justify-center gap-2 text-primary font-headline-md text-sm md:text-headline-md uppercase transition-transform hover:scale-105 active:scale-95 border-2 border-primary shadow-card-ambient"
             >
-              <span className="material-symbols-outlined text-[28px]">grid_view</span>
+              <span className="material-symbols-outlined text-xl md:text-[28px]">grid_view</span>
               Choose New Topic
             </button>
           </div>
@@ -155,28 +155,28 @@ export default function FlashcardPage() {
   return (
     <div className="bg-background min-h-screen flex flex-col font-display-hero select-none">
       {/* Header */}
-      <header className="w-full flex items-center px-6 h-20 border-b-4 border-outline-variant bg-arcade-surface">
+      <header className="w-full flex items-center px-4 md:px-6 h-16 md:h-20 border-b-2 md:border-b-4 border-outline-variant bg-arcade-surface">
         <button
           onClick={() => router.push(`/subjects/${subject?.id || ""}`)}
-          className="w-14 h-14 flex items-center justify-center rounded-full bg-surface-container-lowest border-4 border-outline-variant text-on-surface shrink-0"
+          className="w-10 h-10 md:w-14 md:h-14 flex items-center justify-center rounded-full bg-surface-container-lowest border-2 md:border-4 border-outline-variant text-on-surface shrink-0"
         >
-          <span className="material-symbols-outlined text-headline-md">arrow_back</span>
+          <span className="material-symbols-outlined text-base md:text-headline-md">arrow_back</span>
         </button>
-        <h1 className="font-headline-lg text-headline-lg text-on-surface ml-4 hidden md:block">
+        <h1 className="font-headline-lg text-headline-lg text-on-surface ml-3 md:ml-4 hidden md:block">
           {subject?.name || "Topic"}
         </h1>
-        <div className="flex flex-col items-center justify-center gap-2 flex-1 mx-4">
-          <div className="font-headline-md text-headline-md text-on-surface text-center">
+        <div className="flex flex-col items-center justify-center gap-1 md:gap-2 flex-1 mx-2 md:mx-4">
+          <div className="font-headline-md text-sm md:text-headline-md text-on-surface text-center">
             {currentIndex + 1} / {cards.length}
           </div>
-          <div className="w-full max-w-sm h-4 bg-arcade-border rounded-full border-2 overflow-hidden relative">
+          <div className="w-full max-w-xs md:max-w-sm h-3 md:h-4 bg-arcade-border rounded-full border-1 md:border-2 overflow-hidden relative">
             <div
               className="h-full bg-primary absolute left-0 top-0 transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
         </div>
-        <div className="w-14 shrink-0" />
+        <div className="w-10 md:w-14 shrink-0" />
       </header>
 
       {/* Main */}
@@ -217,21 +217,21 @@ export default function FlashcardPage() {
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-between w-full max-w-sm mt-stack-gap gap-stack-gap mb-12">
+        <div className="flex items-center justify-between w-full max-w-sm mt-4 md:mt-stack-gap gap-3 md:gap-stack-gap mb-6 md:mb-12">
           <button
             onClick={goPrev}
             disabled={currentIndex === 0}
-            className="flex-1 h-20 bg-surface-container-lowest rounded-full flex items-center justify-center gap-2 text-on-surface font-headline-md text-headline-md uppercase transition-transform shadow-2xl disabled:opacity-40 disabled:cursor-not-allowed border-2 border-outline-variant"
+            className="flex-1 h-14 md:h-20 bg-surface-container-lowest rounded-full flex items-center justify-center gap-2 text-on-surface font-headline-md text-sm md:text-headline-md uppercase transition-transform shadow-2xl disabled:opacity-40 disabled:cursor-not-allowed border-2 border-outline-variant"
           >
-            <span className="material-symbols-outlined">arrow_back_ios</span>
+            <span className="material-symbols-outlined text-lg md:text-xl">arrow_back_ios</span>
             Prev
           </button>
           <button
             onClick={goNext}
-            className="flex-1 h-20 bg-primary rounded-full flex items-center justify-center gap-2 text-on-primary font-headline-md text-headline-md uppercase transition-transform shadow-2xl chunky-btn border-4 border-on-primary/20"
+            className="flex-1 h-14 md:h-20 bg-primary rounded-full flex items-center justify-center gap-2 text-on-primary font-headline-md text-sm md:text-headline-md uppercase transition-transform shadow-2xl chunky-btn border-2 md:border-4 border-on-primary/20"
           >
             {currentIndex === cards.length - 1 ? "Finish" : "Next"}
-            <span className="material-symbols-outlined">arrow_forward_ios</span>
+            <span className="material-symbols-outlined text-lg md:text-xl">arrow_forward_ios</span>
           </button>
         </div>
       </main>

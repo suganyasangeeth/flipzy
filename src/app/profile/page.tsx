@@ -66,17 +66,17 @@ export default function ProfilePage() {
 
   return (
     <div className="bg-background text-on-surface min-h-screen flex flex-col font-body-md">
-      <header className="w-full flex items-center px-8 h-24">
+      <header className="w-full flex items-center px-4 md:px-8 h-16 md:h-20">
         <button
           onClick={() => router.push("/home")}
           className="flex items-center gap-2 text-primary hover:text-primary-container transition-colors"
         >
           <span className="material-symbols-outlined">arrow_back</span>
-          <span className="font-label-caps text-label-caps">Home</span>
+          <span className="font-label-caps text-xs md:text-label-caps">Home</span>
         </button>
       </header>
 
-      <main className="flex-1 flex items-start justify-center px-container-padding pb-container-padding">
+      <main className="flex-1 flex items-start justify-center px-4 md:px-container-padding pb-container-padding">
         <div className="w-full max-w-md">
           <div className="bg-arcade-surface border-2 border-primary rounded-2xl p-card-padding arcade-card space-y-8">
             {/* Avatar */}

@@ -71,48 +71,48 @@ export default function TopicSelectorPage() {
   return (
     <div className="bg-background text-on-background min-h-screen flex flex-col font-body-md select-none">
       {/* Header */}
-      <header className="w-full absolute top-0 z-40 bg-transparent flex justify-between items-center px-8 h-24">
+      <header className="w-full absolute top-0 z-40 bg-transparent flex justify-between items-center px-4 md:px-8 h-16 md:h-20">
         <img
           src="/brand/flipzy-logo-horizontal.svg"
           alt="Flipzy"
-          className="h-10"
+          className="h-8 md:h-12"
         />
         <button
           onClick={() => router.push("/profile")}
-          className="flex items-center gap-2 bg-surface-container-highest rounded-full px-6 py-3 shadow-arcade-ambient text-primary hover:bg-surface-variant transition-colors active:translate-y-0.5 active:shadow-none"
+          className="flex items-center gap-2 bg-surface-container-highest rounded-full px-4 md:px-6 py-2 md:py-3 shadow-arcade-ambient text-primary hover:bg-surface-variant transition-colors active:translate-y-0.5 active:shadow-none"
         >
           <span
-            className="material-symbols-outlined"
+            className="material-symbols-outlined text-xl md:text-2xl"
             style={{ fontVariationSettings: "'FILL' 1" }}
           >
             person
           </span>
-          <span className="font-label-caps text-label-caps">Profile</span>
+          <span className="font-label-caps text-xs md:text-label-caps">Profile</span>
         </button>
       </header>
 
       {/* Main Content */}
-      <main className="w-full px-container-padding flex-grow flex items-center justify-center pt-24 pb-container-padding">
+      <main className="w-full px-4 md:px-container-padding flex-grow flex items-center justify-center pt-20 md:pt-24 pb-container-padding">
         <div className="flex flex-col items-center w-full max-w-4xl mx-auto">
           {/* Back arrow */}
-          <div className="w-full mb-4">
+          <div className="w-full mb-2 md:mb-4">
             <button
               onClick={() => router.push("/home")}
               className="flex items-center gap-2 text-primary hover:text-primary-container transition-colors"
             >
               <span className="material-symbols-outlined">arrow_back</span>
-              <span className="font-label-caps text-label-caps">Back</span>
+              <span className="font-label-caps text-xs md:text-label-caps">Back</span>
             </button>
           </div>
 
           {/* Subject heading */}
-          <div className="flex flex-col items-center gap-3 mb-8 text-center">
+          <div className="flex flex-col items-center gap-2 md:gap-3 mb-4 md:mb-8 text-center">
             <div
-              className="w-20 h-20 rounded-2xl border-2 border-primary flex items-center justify-center"
+              className="w-14 h-14 md:w-20 md:h-20 rounded-xl md:rounded-2xl border-2 border-primary flex items-center justify-center"
               style={{ backgroundColor: subject.color }}
             >
               <span
-                className="material-symbols-outlined text-[48px]"
+                className="material-symbols-outlined text-3xl md:text-[48px]"
                 style={{
                   fontVariationSettings: "'FILL' 1",
                   color: getIconColor(subject.color),
@@ -121,10 +121,10 @@ export default function TopicSelectorPage() {
                 {subject.icon}
               </span>
             </div>
-            <h1 className="font-display-hero text-headline-lg text-primary uppercase font-black">
+            <h1 className="font-display-hero text-headline-md md:text-headline-lg text-primary uppercase font-black">
               {subject.name}
             </h1>
-            <p className="font-headline-md text-body-lg text-on-surface-variant">
+            <p className="font-headline-md text-sm md:text-body-lg text-on-surface-variant">
               Which {subject.name.toLowerCase()} should we learn about?
             </p>
           </div>
@@ -143,21 +143,21 @@ export default function TopicSelectorPage() {
               </p>
             </div>
           ) : (
-            <div className="flex flex-col gap-6 w-full">
+            <div className="flex flex-col gap-3 md:gap-6 w-full">
               {topics.map((topic) => (
                 <button
                   key={topic.id}
                   onClick={() => router.push(`/flashcards/${topic.id}`)}
-                  className="bg-arcade-surface rounded-2xl border-2 border-primary p-8 flex items-center justify-between gap-4 transition-transform duration-100 ease-in-out shadow-card-ambient hover:-translate-y-1 text-left w-full active:translate-y-0.5 active:shadow-card-ambient-active"
+                  className="bg-arcade-surface rounded-xl md:rounded-2xl border-2 border-primary p-4 md:p-8 flex items-center justify-between gap-3 md:gap-4 transition-transform duration-100 ease-in-out shadow-card-ambient hover:-translate-y-1 text-left w-full active:translate-y-0.5 active:shadow-card-ambient-active"
                 >
-                  <div className="flex flex-col items-start gap-2">
+                  <div className="flex flex-col items-start gap-1 md:gap-2 min-w-0">
                     <span
-                      className="font-headline-md text-headline-md text-on-surface"
+                      className="font-headline-md text-sm md:text-headline-md text-on-surface truncate w-full"
                     >
                       {topic.name}
                     </span>
                     {topic.description && (
-                      <span className="font-body-md text-body-md text-on-surface-variant opacity-80">
+                      <span className="font-body-md text-xs md:text-body-md text-on-surface-variant opacity-80 truncate w-full">
                         {topic.description}
                       </span>
                     )}
