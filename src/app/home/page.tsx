@@ -32,6 +32,7 @@ function getIconColor(bgHex: string): string {
 export default function HomePage() {
   const router = useRouter();
   const [subjects, setSubjects] = useState<Subject[]>(FALLBACK_SUBJECTS);
+  const [kidName, setKidName] = useState<string>("");
 
   useEffect(() => {
     async function fetchSubjects() {
@@ -40,9 +41,11 @@ export default function HomePage() {
 
       const { data: kid } = await supabase
         .from("kid_accounts")
-        .select("id")
+        .select("id, name")
         .eq("email", user.email)
         .single();
+
+      if (kid?.name) setKidName(kid.name);
 
       const { data } = await supabase
         .from("subjects")
@@ -125,7 +128,7 @@ export default function HomePage() {
           {/* Hero */}
           <div className="flex flex-col items-center gap-1 mb-6 md:mb-10 text-center">
             <h1 className="font-display-hero text-headline-lg md:text-display-hero text-primary">
-              Hi there 👋
+              {kidName ? `Hi ${kidName}` : "Hi there"} 👋
             </h1>
             <p className="font-headline-md text-sm md:text-body-lg text-on-surface-variant">
               Pick a subject to start learning
