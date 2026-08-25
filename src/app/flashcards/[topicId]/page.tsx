@@ -31,6 +31,15 @@ function getIconColor(bgHex: string): string {
   return luminance > 0.5 ? "#071B37" : "#ffffff";
 }
 
+function renderMultiline(text: string) {
+  return text.split("\n").map((line, i, arr) => (
+    <span key={i}>
+      {line}
+      {i < arr.length - 1 && <br />}
+    </span>
+  ));
+}
+
 export default function FlashcardPage() {
   const router = useRouter();
   const params = useParams();
@@ -258,8 +267,8 @@ export default function FlashcardPage() {
                   auto_awesome
                 </span>
               </div>
-              <h2 className="text-body-lg md:text-headline-md text-on-surface text-center px-2 md:px-8 leading-tight break-words w-full">
-                {card.front_text}
+              <h2 className="text-body-lg md:text-headline-md text-on-surface text-center px-2 md:px-8 leading-snug break-words w-full">
+                {renderMultiline(card.front_text)}
               </h2>
               <div className="absolute bottom-3 md:bottom-4">
                 <span className="font-label-caps text-xs text-on-surface-variant uppercase opacity-60">
@@ -274,8 +283,8 @@ export default function FlashcardPage() {
                   auto_awesome
                 </span>
               </div>
-              <p className="text-body-lg md:text-headline-md text-primary text-center px-2 md:px-8 leading-tight break-words w-full">
-                {card.back_text}
+              <p className="text-body-lg md:text-headline-md text-primary text-center px-2 md:px-8 leading-snug break-words w-full">
+                {renderMultiline(card.back_text)}
               </p>
               <div className="absolute bottom-3 md:bottom-4">
                 <span className="font-label-caps text-xs text-primary/60 uppercase">
