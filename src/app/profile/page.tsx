@@ -66,7 +66,8 @@ export default function ProfilePage() {
 
   return (
     <div className="bg-background text-on-surface min-h-screen flex flex-col font-body-md">
-      <header className="w-full flex items-center px-4 md:px-8 h-16 md:h-20">
+      {/* Header */}
+      <header className="w-full bg-arcade-surface border-b-2 border-arcade-border flex items-center px-4 md:px-8 h-16 md:h-20 shrink-0">
         <button
           onClick={() => router.push("/home")}
           className="flex items-center gap-2 text-primary hover:text-primary-container transition-colors"
@@ -76,12 +77,12 @@ export default function ProfilePage() {
         </button>
       </header>
 
-      <main className="flex-1 flex items-start justify-center px-4 md:px-container-padding pb-container-padding">
+      <main className="flex-1 flex items-start justify-center px-4 md:px-container-padding pt-8 md:pt-12 pb-container-padding">
         <div className="w-full max-w-md">
-          <div className="bg-arcade-surface border-2 border-primary rounded-2xl p-card-padding arcade-card space-y-8">
+          <div className="bg-arcade-surface border-2 border-arcade-border border-l-4 border-l-primary rounded-2xl p-card-padding arcade-card space-y-8">
             {/* Avatar */}
             <div className="flex flex-col items-center gap-4">
-              <div className="w-28 h-28 rounded-full bg-secondary-fixed border-4 border-primary overflow-hidden shadow-chunky-primary flex items-center justify-center">
+              <div className="w-28 h-28 rounded-full bg-secondary-fixed border-4 border-primary overflow-hidden shadow-chunky-primary flex items-center justify-center transition-transform duration-200 hover:scale-105 cursor-pointer">
                 <span
                   className="material-symbols-outlined text-6xl text-primary"
                   style={{ fontVariationSettings: "'FILL' 1" }}

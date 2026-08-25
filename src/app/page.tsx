@@ -81,17 +81,47 @@ export default function LoginPage() {
     setError("");
   }
 
+  const bgIcons = [
+    { icon: "cruelty_free", top: "8%", left: "5%", delay: "0s", size: "text-[90px] md:text-[130px]" },
+    { icon: "restaurant", top: "15%", right: "8%", delay: "1.5s", size: "text-[80px] md:text-[110px]" },
+    { icon: "science", bottom: "20%", left: "10%", delay: "3s", size: "text-[70px] md:text-[100px]" },
+    { icon: "mood", bottom: "10%", right: "5%", delay: "0.8s", size: "text-[85px] md:text-[120px]" },
+    { icon: "palette", top: "55%", left: "3%", delay: "2.2s", size: "text-[60px] md:text-[90px]" },
+    { icon: "family_home", top: "45%", right: "3%", delay: "4s", size: "text-[65px] md:text-[95px]" },
+  ];
+
   return (
-    <div className="bg-background min-h-screen flex items-center justify-center p-container-padding font-body-md text-on-surface">
-      <main className="w-full max-w-md relative">
+    <div className="bg-background min-h-screen flex items-center justify-center p-container-padding font-body-md text-on-surface relative overflow-hidden">
+      {/* Floating background icons */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        {bgIcons.map((item, i) => (
+          <span
+            key={i}
+            className={`material-symbols-outlined absolute ${item.size} text-primary/[0.04]`}
+            style={{
+              top: item.top,
+              left: item.left,
+              right: item.right,
+              bottom: item.bottom,
+              animationDelay: item.delay,
+              animation: "gentle-drift 10s ease-in-out infinite",
+              fontVariationSettings: "'FILL' 1",
+            }}
+          >
+            {item.icon}
+          </span>
+        ))}
+      </div>
+
+      <main className="w-full max-w-md relative z-10">
         {/* Logo */}
-        <div className="text-center mb-6 md:mb-8">
+        <div className="text-center mb-6 md:mb-10">
           <img
             src="/brand/flipzy-logo-primary.svg"
             alt="Flipzy"
-            className="h-16 md:h-28 mx-auto"
+            className="h-20 md:h-36 mx-auto"
           />
-          <p className="font-label-caps text-xs md:text-label-caps text-on-surface-variant mt-2">
+          <p className="font-label-caps text-xs md:text-label-caps text-on-surface-variant mt-3">
             {role === "admin" ? "Admin Portal" : "Kid Login"}
           </p>
         </div>
@@ -130,7 +160,7 @@ export default function LoginPage() {
         </div>
 
         {/* Login Card */}
-        <div className="bg-arcade-surface rounded-xl arcade-card p-card-padding relative overflow-hidden">
+        <div className="bg-arcade-surface rounded-xl arcade-card p-card-padding relative overflow-hidden border-l-4 border-primary">
           {/* Decorative accent */}
           <div className="absolute top-0 right-0 w-16 h-16 bg-accent-objects rounded-bl-full opacity-20" />
 
@@ -313,24 +343,6 @@ export default function LoginPage() {
               </a>
             </div>
           )}
-        </div>
-
-        {/* Decorative elements */}
-        <div className="absolute top-10 left-10 text-tertiary opacity-30 hidden md:block">
-          <span
-            className="material-symbols-outlined text-6xl"
-            style={{ fontVariationSettings: "'FILL' 1" }}
-          >
-            star
-          </span>
-        </div>
-        <div className="absolute bottom-10 right-10 text-secondary-container opacity-30 hidden md:block">
-          <span
-            className="material-symbols-outlined text-6xl"
-            style={{ fontVariationSettings: "'FILL' 1" }}
-          >
-            sports_esports
-          </span>
         </div>
       </main>
     </div>

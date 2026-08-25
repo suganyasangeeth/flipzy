@@ -72,17 +72,46 @@ export default function HomePage() {
     fetchSubjects();
   }, []);
 
+  const bgIcons = [
+    { icon: "cruelty_free", top: "8%", left: "5%", delay: "0s", size: "text-[100px] md:text-[140px]" },
+    { icon: "restaurant", top: "60%", right: "3%", delay: "2s", size: "text-[90px] md:text-[120px]" },
+    { icon: "science", bottom: "15%", left: "8%", delay: "4s", size: "text-[80px] md:text-[110px]" },
+    { icon: "palette", top: "25%", right: "10%", delay: "1s", size: "text-[70px] md:text-[100px]" },
+  ];
+
   return (
     <div className="bg-background text-on-surface min-h-screen flex flex-col font-display-hero select-none">
-      <header className="w-full absolute top-0 z-40 bg-transparent flex justify-between items-center px-4 md:px-8 h-16 md:h-20">
+      {/* Floating background icons */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        {bgIcons.map((item, i) => (
+          <span
+            key={i}
+            className={`material-symbols-outlined absolute ${item.size} text-primary/[0.04]`}
+            style={{
+              top: item.top,
+              left: item.left,
+              right: item.right,
+              bottom: item.bottom,
+              animationDelay: item.delay,
+              animation: "gentle-float 8s ease-in-out infinite",
+              fontVariationSettings: "'FILL' 1",
+            }}
+          >
+            {item.icon}
+          </span>
+        ))}
+      </div>
+
+      {/* Header */}
+      <header className="w-full bg-arcade-surface border-b-2 border-arcade-border flex justify-between items-center px-4 md:px-8 h-16 md:h-20 shrink-0 z-40 relative">
         <img
           src="/brand/flipzy-logo-horizontal.svg"
           alt="Flipzy"
-          className="h-8 md:h-12"
+          className="h-10 md:h-14"
         />
         <button
           onClick={() => router.push("/profile")}
-          className="flex items-center gap-2 bg-surface-container-highest rounded-full px-4 md:px-6 py-2 md:py-3 shadow-arcade-ambient text-primary hover:bg-surface-variant transition-colors active:translate-y-0.5 active:shadow-card-ambient-active"
+          className="flex items-center gap-2 bg-surface-container-highest rounded-full px-4 md:px-6 py-2 md:py-3 shadow-card-ambient text-primary hover:bg-surface-variant transition-colors active:translate-y-0.5 active:shadow-card-ambient-active"
         >
           <span className="material-symbols-outlined text-xl md:text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
             person
@@ -91,30 +120,32 @@ export default function HomePage() {
         </button>
       </header>
 
-      <main className="w-full px-4 md:px-container-padding flex-grow flex items-center justify-center pt-20 md:pt-24 pb-container-padding">
+      <main className="w-full px-4 md:px-container-padding flex-grow flex items-start justify-center pt-6 md:pt-10 pb-container-padding relative z-10">
         <div className="flex flex-col items-center w-full max-w-4xl mx-auto">
-          <div className="flex flex-col items-center gap-1 md:gap-2 mb-4 md:mb-8 text-center">
-            <h1 className="font-display-hero text-headline-md md:text-headline-lg text-primary">
-              Hi there
+          {/* Hero */}
+          <div className="flex flex-col items-center gap-1 mb-6 md:mb-10 text-center">
+            <h1 className="font-display-hero text-headline-lg md:text-display-hero text-primary">
+              Hi there 👋
             </h1>
             <p className="font-headline-md text-sm md:text-body-lg text-on-surface-variant">
               Pick a subject to start learning
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6 w-full">
+          {/* Subject grid */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-5 w-full">
             {subjects.map((subject) => (
               <button
                 key={subject.id}
                 onClick={() => router.push(`/subjects/${subject.id}`)}
-                className="bg-arcade-surface rounded-2xl md:rounded-3xl p-4 md:p-8 flex flex-col items-center justify-center gap-3 md:gap-6 aspect-square transition-transform duration-100 ease-in-out shadow-card-ambient active:translate-y-0.5 active:shadow-card-ambient-active"
+                className="group bg-arcade-surface rounded-2xl border-2 border-arcade-border py-5 md:py-7 px-3 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all duration-200 ease-out shadow-card-ambient hover:-translate-y-1 hover:shadow-arcade-card hover:border-primary/30 active:translate-y-0.5 active:shadow-card-ambient-active cursor-pointer"
               >
                 <div
-                  className="w-16 h-16 md:w-24 md:h-24 rounded-xl md:rounded-2xl flex items-center justify-center"
+                  className="w-14 h-14 md:w-20 md:h-20 rounded-xl md:rounded-2xl flex items-center justify-center transition-all duration-200 group-hover:ring-2 group-hover:ring-primary/20"
                   style={{ backgroundColor: subject.color }}
                 >
                   <span
-                    className="material-symbols-outlined text-4xl md:text-[56px]"
+                    className="material-symbols-outlined text-3xl md:text-[48px]"
                     style={{
                       fontVariationSettings: "'FILL' 1",
                       color: getIconColor(subject.color),
