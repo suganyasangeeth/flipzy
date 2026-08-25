@@ -12,15 +12,6 @@ interface Subject {
   order: number;
 }
 
-const FALLBACK_SUBJECTS: Subject[] = [
-  { id: "1", name: "Animals", color: "#ffdbca", icon: "cruelty_free", order: 1 },
-  { id: "2", name: "Food", color: "#ffdad6", icon: "restaurant", order: 2 },
-  { id: "3", name: "Emotions", color: "#e9ddff", icon: "mood", order: 3 },
-  { id: "4", name: "Science", color: "#d8e3fb", icon: "science", order: 4 },
-  { id: "5", name: "Family", color: "#8cfa9f", icon: "family_home", order: 5 },
-  { id: "6", name: "Colors", color: "#dee8ff", icon: "palette", order: 6 },
-];
-
 function getIconColor(bgHex: string): string {
   const r = parseInt(bgHex.slice(1, 3), 16);
   const g = parseInt(bgHex.slice(3, 5), 16);
@@ -31,13 +22,17 @@ function getIconColor(bgHex: string): string {
 
 export default function HomePage() {
   const router = useRouter();
-  const [subjects, setSubjects] = useState<Subject[]>(FALLBACK_SUBJECTS);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [kidName, setKidName] = useState<string>("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchSubjects() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
       const { data: kid } = await supabase
         .from("kid_accounts")
@@ -47,13 +42,16 @@ export default function HomePage() {
 
       if (kid?.name) setKidName(kid.name);
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("subjects")
         .select("id, name, color, icon, order")
         .eq("visible", true)
         .order("order", { ascending: true });
 
-      if (!data || data.length === 0) return;
+      if (error || !data || data.length === 0) {
+        setLoading(false);
+        return;
+      }
 
       if (kid) {
         const { data: hidden } = await supabase
@@ -65,12 +63,14 @@ export default function HomePage() {
         if (hidden && hidden.length > 0) {
           const hiddenIds = new Set(hidden.map((h) => h.subject_id));
           const filtered = data.filter((s) => !hiddenIds.has(s.id));
-          setSubjects(filtered.length > 0 ? filtered : FALLBACK_SUBJECTS);
+          setSubjects(filtered.length > 0 ? filtered : data);
+          setLoading(false);
           return;
         }
       }
 
       setSubjects(data);
+      setLoading(false);
     }
     fetchSubjects();
   }, []);
@@ -136,33 +136,50 @@ export default function HomePage() {
           </div>
 
           {/* Subject grid */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-5 w-full">
-            {subjects.map((subject) => (
-              <button
-                key={subject.id}
-                onClick={() => router.push(`/subjects/${subject.id}`)}
-                className="group bg-arcade-surface rounded-2xl border-2 border-arcade-border py-5 md:py-7 px-3 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all duration-200 ease-out shadow-card-ambient hover:-translate-y-1 hover:shadow-arcade-card hover:border-primary/30 active:translate-y-0.5 active:shadow-card-ambient-active cursor-pointer"
-              >
-                <div
-                  className="w-14 h-14 md:w-20 md:h-20 rounded-xl md:rounded-2xl flex items-center justify-center transition-all duration-200 group-hover:ring-2 group-hover:ring-primary/20"
-                  style={{ backgroundColor: subject.color }}
-                >
-                  <span
-                    className="material-symbols-outlined text-3xl md:text-[48px]"
-                    style={{
-                      fontVariationSettings: "'FILL' 1",
-                      color: getIconColor(subject.color),
-                    }}
-                  >
-                    {subject.icon}
-                  </span>
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-5 w-full">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="bg-arcade-surface rounded-2xl border-2 border-arcade-border py-5 md:py-7 px-3 flex flex-col items-center justify-center gap-2 md:gap-4 animate-pulse">
+                  <div className="w-14 h-14 md:w-20 md:h-20 rounded-xl md:rounded-2xl bg-surface-container-high" />
+                  <div className="w-16 h-4 rounded bg-surface-container-high" />
                 </div>
-                <span className="font-headline-md text-sm md:text-headline-md text-on-surface">
-                  {subject.name}
-                </span>
-              </button>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : subjects.length === 0 ? (
+            <div className="text-center py-16">
+              <span className="material-symbols-outlined text-6xl text-outline-variant mb-4">inventory_2</span>
+              <p className="font-headline-md text-headline-md text-on-surface-variant">No subjects available</p>
+              <p className="font-body-md text-on-surface-variant opacity-70 mt-2">Check back soon!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-5 w-full">
+              {subjects.map((subject) => (
+                <button
+                  key={subject.id}
+                  onClick={() => router.push(`/subjects/${subject.id}`)}
+                  className="group bg-arcade-surface rounded-2xl border-2 border-arcade-border py-5 md:py-7 px-3 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all duration-200 ease-out shadow-card-ambient hover:-translate-y-1 hover:shadow-arcade-card hover:border-primary/30 active:translate-y-0.5 active:shadow-card-ambient-active cursor-pointer"
+                >
+                  <div
+                    className="w-14 h-14 md:w-20 md:h-20 rounded-xl md:rounded-2xl flex items-center justify-center transition-all duration-200 group-hover:ring-2 group-hover:ring-primary/20"
+                    style={{ backgroundColor: subject.color }}
+                  >
+                    <span
+                      className="material-symbols-outlined text-3xl md:text-[48px]"
+                      style={{
+                        fontVariationSettings: "'FILL' 1",
+                        color: getIconColor(subject.color),
+                      }}
+                    >
+                      {subject.icon}
+                    </span>
+                  </div>
+                  <span className="font-headline-md text-sm md:text-headline-md text-on-surface">
+                    {subject.name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </div>
