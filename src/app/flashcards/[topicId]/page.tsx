@@ -251,10 +251,10 @@ export default function FlashcardPage() {
               flipped ? "rotate-y-180" : ""
             }`}
           >
-            {/* Front */}
-            <div className="absolute inset-0 backface-hidden bg-arcade-surface flex flex-col items-center justify-center p-5 md:p-8 shadow-2xl rounded-3xl border-2 border-arcade-border border-t-4 border-primary transition-all duration-200 group-hover:scale-[1.01]">
+            {/* Front — white face (matches logo front card) */}
+            <div className="absolute inset-0 backface-hidden bg-white flex flex-col items-center justify-center p-5 md:p-8 shadow-2xl rounded-3xl border-2 border-secondary border-t-4 border-t-secondary transition-all duration-200 group-hover:scale-[1.01]">
               <div className="absolute top-3 right-3 md:top-4 md:right-4">
-                <span className="material-symbols-outlined text-lg md:text-xl text-primary/20" style={{ fontVariationSettings: "'FILL' 1" }}>
+                <span className="material-symbols-outlined text-lg md:text-xl text-secondary/20" style={{ fontVariationSettings: "'FILL' 1" }}>
                   auto_awesome
                 </span>
               </div>
@@ -267,18 +267,18 @@ export default function FlashcardPage() {
                 </span>
               </div>
             </div>
-            {/* Back */}
-            <div className="absolute inset-0 backface-hidden rotate-y-180 bg-arcade-surface flex flex-col items-center justify-center p-5 md:p-8 shadow-2xl rounded-3xl border-2 border-arcade-border border-t-4 border-primary">
+            {/* Back — yellow face (matches logo rear card) */}
+            <div className="absolute inset-0 backface-hidden rotate-y-180 bg-gradient-to-br from-[#FFD83D] to-[#FFC20A] flex flex-col items-center justify-center p-5 md:p-8 shadow-2xl rounded-3xl border-2 border-primary">
               <div className="absolute top-3 right-3 md:top-4 md:right-4">
                 <span className="material-symbols-outlined text-lg md:text-xl text-primary/20" style={{ fontVariationSettings: "'FILL' 1" }}>
                   auto_awesome
                 </span>
               </div>
-              <p className="text-body-lg md:text-headline-md text-on-surface text-center px-2 md:px-8 leading-tight break-words w-full">
+              <p className="text-body-lg md:text-headline-md text-primary text-center px-2 md:px-8 leading-tight break-words w-full">
                 {card.back_text}
               </p>
               <div className="absolute bottom-3 md:bottom-4">
-                <span className="font-label-caps text-xs text-on-surface-variant uppercase opacity-60">
+                <span className="font-label-caps text-xs text-primary/60 uppercase">
                   Tap to flip back
                 </span>
               </div>
