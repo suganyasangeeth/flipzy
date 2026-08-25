@@ -6,8 +6,8 @@
 @tailwind utilities;
 
 :root {
-  --background: #D9F2F2;
-  --foreground: #111c2d;
+  --background: #F5F0E8;
+  --foreground: #071B37;
 }
 
 body {
@@ -20,11 +20,11 @@ body {
 @layer components {
   .chunky-btn {
     @apply transition-all duration-100 ease-in-out;
-    box-shadow: 6px 6px 0px 0px var(--tw-shadow-color, #A81D1D);
+    box-shadow: 6px 6px 0px 0px var(--tw-shadow-color, #071B37);
   }
   .chunky-btn:active {
     transform: translate(6px, 6px);
-    box-shadow: 0px 0px 0px 0px var(--tw-shadow-color, #A81D1D);
+    box-shadow: 0px 0px 0px 0px var(--tw-shadow-color, #071B37);
   }
   .arcade-card {
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);

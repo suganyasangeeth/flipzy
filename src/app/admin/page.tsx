@@ -577,10 +577,10 @@ export default function AdminPage() {
                       style={{
                         backgroundColor: c,
                         borderColor:
-                          subjectColor === c ? "#A81D1D" : "transparent",
+                          subjectColor === c ? "#071B37" : "transparent",
                         boxShadow:
                           subjectColor === c
-                            ? "0 0 0 2px #A81D1D"
+                            ? "0 0 0 2px #071B37"
                             : "none",
                       }}
                     />
