@@ -31,6 +31,7 @@ export default function FlashcardUploadDialog({
   const [uploadResult, setUploadResult] = useState<{
     success: boolean;
     count: number;
+    skipped: number;
   } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -138,8 +139,37 @@ export default function FlashcardUploadDialog({
   async function handleUpload() {
     if (parsedCards.length === 0) return;
     setUploading(true);
+    setErrors([]);
 
-    const rows = parsedCards.map((c) => ({
+    const { data: existing, error: fetchErr } = await supabase
+      .from("flashcards")
+      .select("front_text")
+      .eq("topic_id", topicId);
+
+    if (fetchErr) {
+      setErrors([`Failed to check existing cards: ${fetchErr.message}`]);
+      setUploading(false);
+      return;
+    }
+
+    const existingFronts = new Set(
+      (existing ?? []).map((r: { front_text: string }) => r.front_text)
+    );
+
+    const uniqueCards = parsedCards.filter(
+      (c) => !existingFronts.has(c.front_text)
+    );
+    const skippedCount = parsedCards.length - uniqueCards.length;
+
+    if (uniqueCards.length === 0) {
+      setErrors([
+        `All ${parsedCards.length} card${parsedCards.length !== 1 ? "s" : ""} already exist in this topic. Nothing to upload.`,
+      ]);
+      setUploading(false);
+      return;
+    }
+
+    const rows = uniqueCards.map((c) => ({
       topic_id: topicId,
       front_text: c.front_text,
       back_text: c.back_text,
@@ -154,7 +184,7 @@ export default function FlashcardUploadDialog({
       return;
     }
 
-    setUploadResult({ success: true, count: rows.length });
+    setUploadResult({ success: true, count: rows.length, skipped: skippedCount });
     setUploading(false);
   }
 
@@ -203,6 +233,11 @@ export default function FlashcardUploadDialog({
               <h3 className="font-headline-md text-headline-md text-on-surface text-center">
                 {uploadResult.count} Flashcard{uploadResult.count !== 1 ? "s" : ""} Uploaded!
               </h3>
+              {uploadResult.skipped > 0 && (
+                <p className="font-body-md text-on-surface-variant text-center">
+                  {uploadResult.skipped} duplicate{uploadResult.skipped !== 1 ? "s" : ""} skipped (already exist in this topic).
+                </p>
+              )}
               <button
                 onClick={onUploaded}
                 className="px-8 py-3 rounded-xl bg-primary text-on-primary font-label-caps text-label-caps uppercase chunky-btn border-4 border-on-primary/20"

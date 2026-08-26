@@ -25,6 +25,8 @@ export default function HomePage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [kidName, setKidName] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [showTip, setShowTip] = useState(false);
+  const [allHidden, setAllHidden] = useState(false);
 
   useEffect(() => {
     async function fetchSubjects() {
@@ -36,11 +38,12 @@ export default function HomePage() {
 
       const { data: kid } = await supabase
         .from("kid_accounts")
-        .select("id, name")
+        .select("id, name, has_seen_onboarding")
         .eq("email", user.email)
         .single();
 
       if (kid?.name) setKidName(kid.name);
+      if (kid && !kid.has_seen_onboarding) setShowTip(true);
 
       const { data, error } = await supabase
         .from("subjects")
@@ -63,7 +66,12 @@ export default function HomePage() {
         if (hidden && hidden.length > 0) {
           const hiddenIds = new Set(hidden.map((h) => h.subject_id));
           const filtered = data.filter((s) => !hiddenIds.has(s.id));
-          setSubjects(filtered.length > 0 ? filtered : data);
+          if (filtered.length > 0) {
+            setSubjects(filtered);
+          } else {
+            setSubjects([]);
+            setAllHidden(true);
+          }
           setLoading(false);
           return;
         }
@@ -135,6 +143,25 @@ export default function HomePage() {
             </p>
           </div>
 
+          {/* Welcome tip */}
+          {showTip && (
+            <div className="w-full max-w-md mb-6 bg-secondary/10 border-2 border-secondary/30 rounded-2xl p-4 flex items-start gap-3 relative">
+              <span className="material-symbols-outlined text-3xl text-secondary shrink-0 mt-0.5">lightbulb</span>
+              <div className="flex-1">
+                <p className="font-body-lg text-on-surface font-semibold text-sm">Welcome to Flipzy!</p>
+                <p className="font-body-md text-on-surface-variant text-xs mt-1">
+                  Pick a subject, choose a topic, then tap cards to learn. You&apos;ll rate each card to help Flipzy remember what you need to practice.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowTip(false)}
+                className="text-on-surface-variant hover:text-primary transition-colors shrink-0"
+              >
+                <span className="material-symbols-outlined text-xl">close</span>
+              </button>
+            </div>
+          )}
+
           {/* Subject grid */}
           {loading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-5 w-full">
@@ -147,9 +174,15 @@ export default function HomePage() {
             </div>
           ) : subjects.length === 0 ? (
             <div className="text-center py-16">
-              <span className="material-symbols-outlined text-6xl text-outline-variant mb-4">inventory_2</span>
-              <p className="font-headline-md text-headline-md text-on-surface-variant">No subjects available</p>
-              <p className="font-body-md text-on-surface-variant opacity-70 mt-2">Check back soon!</p>
+              <span className="material-symbols-outlined text-6xl text-outline-variant mb-4">
+                {allHidden ? "visibility_off" : "inventory_2"}
+              </span>
+              <p className="font-headline-md text-headline-md text-on-surface-variant">
+                {allHidden ? "No subjects available for you yet" : "No subjects available"}
+              </p>
+              <p className="font-body-md text-on-surface-variant opacity-70 mt-2">
+                {allHidden ? "Ask your teacher to enable some subjects!" : "Check back soon!"}
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-5 w-full">

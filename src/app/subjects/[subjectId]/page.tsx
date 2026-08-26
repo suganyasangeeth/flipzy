@@ -70,8 +70,30 @@ export default function TopicSelectorPage() {
 
   if (!subject) {
     return (
-      <div className="bg-background min-h-screen flex items-center justify-center">
-        <p className="text-on-surface-variant">Subject not found.</p>
+      <div className="bg-background min-h-screen flex flex-col">
+        <header className="w-full bg-arcade-surface border-b-2 border-arcade-border flex items-center px-4 md:px-6 h-16 md:h-20 shrink-0">
+          <button
+            onClick={() => router.push("/home")}
+            className="flex items-center gap-2 bg-surface-container-highest rounded-full px-4 py-2 border border-outline-variant text-primary hover:bg-surface-variant transition-colors active:translate-y-0.5 shrink-0"
+          >
+            <span className="material-symbols-outlined text-lg">arrow_back</span>
+            <span className="font-label-caps text-xs hidden md:inline">Home</span>
+          </button>
+          <div className="flex-1 flex justify-center">
+            <img src="/brand/flipzy-logo-horizontal.svg" alt="Flipzy" className="h-10 md:h-14" />
+          </div>
+          <div className="w-20 shrink-0" />
+        </header>
+        <main className="flex-1 flex flex-col items-center justify-center p-6">
+          <span className="material-symbols-outlined text-6xl text-outline-variant mb-4">search_off</span>
+          <p className="font-headline-md text-headline-md text-on-surface-variant">Subject not found</p>
+          <button
+            onClick={() => router.push("/home")}
+            className="mt-4 h-12 px-6 rounded-xl bg-primary text-on-primary font-label-caps text-label-caps uppercase chunky-btn border-4 border-on-primary/20"
+          >
+            Back to Home
+          </button>
+        </main>
       </div>
     );
   }

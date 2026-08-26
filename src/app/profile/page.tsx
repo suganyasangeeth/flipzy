@@ -12,6 +12,12 @@ interface KidProfile {
   created_at: string;
 }
 
+interface Stats {
+  totalReviews: number;
+  uniqueTopics: number;
+  totalCards: number;
+}
+
 const AVATAR_OPTIONS = [
   "face",
   "mood",
@@ -36,6 +42,10 @@ export default function ProfilePage() {
   const [editAvatar, setEditAvatar] = useState("face");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [pwMsg, setPwMsg] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -55,6 +65,37 @@ export default function ProfilePage() {
         setProfile(data);
         setEditName(data.name);
         setEditAvatar(data.avatar || "face");
+
+        const { count: totalReviews } = await supabase
+          .from("card_reviews")
+          .select("id", { count: "exact", head: true })
+          .eq("kid_id", data.id);
+
+        const { data: reviewedTopics } = await supabase
+          .from("card_reviews")
+          .select("flashcard_id")
+          .eq("kid_id", data.id);
+
+        const topicIds = new Set<string>();
+        if (reviewedTopics && reviewedTopics.length > 0) {
+          const cardIds = reviewedTopics.map((r: { flashcard_id: string }) => r.flashcard_id);
+          const { data: cards } = await supabase
+            .from("flashcards")
+            .select("id, topic_id")
+            .in("id", cardIds);
+          cards?.forEach((c: { topic_id: string }) => topicIds.add(c.topic_id));
+        }
+
+        const { count: totalCards } = await supabase
+          .from("flashcards")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "published");
+
+        setStats({
+          totalReviews: totalReviews ?? 0,
+          uniqueTopics: topicIds.size,
+          totalCards: totalCards ?? 0,
+        });
       }
       setLoading(false);
     }
@@ -94,6 +135,22 @@ export default function ProfilePage() {
     }
     setEditing(false);
     setMsg("");
+  }
+
+  async function handleChangePassword() {
+    if (newPassword.length < 6) {
+      setPwMsg("Password must be at least 6 characters.");
+      return;
+    }
+    setPwMsg("");
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) {
+      setPwMsg(error.message);
+    } else {
+      setPwMsg("Password updated!");
+      setNewPassword("");
+      setTimeout(() => { setPwMsg(""); setShowPassword(false); }, 2000);
+    }
   }
 
   if (loading) {
@@ -213,6 +270,69 @@ export default function ProfilePage() {
                 <p className="font-body-lg text-body-lg text-on-surface mt-1">{joinedDate}</p>
               </div>
             </div>
+
+            {/* Learning Stats */}
+            {stats && (
+              <div className="pb-6 border-b-2 border-outline-variant/30">
+                <label className="font-label-caps text-label-caps text-on-surface-variant mb-3 block">Learning Stats</label>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-surface-container-low rounded-xl p-3 text-center border border-outline-variant/30">
+                    <p className="font-headline-lg text-headline-lg text-primary">{stats.totalReviews}</p>
+                    <p className="font-label-caps text-xs text-on-surface-variant">Reviews</p>
+                  </div>
+                  <div className="bg-surface-container-low rounded-xl p-3 text-center border border-outline-variant/30">
+                    <p className="font-headline-lg text-headline-lg text-secondary">{stats.uniqueTopics}</p>
+                    <p className="font-label-caps text-xs text-on-surface-variant">Topics</p>
+                  </div>
+                  <div className="bg-surface-container-low rounded-xl p-3 text-center border border-outline-variant/30">
+                    <p className="font-headline-lg text-headline-lg text-tertiary">{stats.totalCards}</p>
+                    <p className="font-label-caps text-xs text-on-surface-variant">Cards</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Change Password */}
+            {!editing && (
+              <div className="pb-6 border-b-2 border-outline-variant/30">
+                {!showPassword ? (
+                  <button
+                    onClick={() => setShowPassword(true)}
+                    className="w-full bg-surface-container-highest text-primary font-label-caps text-label-caps py-3 rounded-xl uppercase border-2 border-outline-variant flex items-center justify-center gap-2 hover:bg-surface-variant transition-colors"
+                  >
+                    <span className="material-symbols-outlined">lock</span>
+                    Change Password
+                  </button>
+                ) : (
+                  <div className="space-y-3">
+                    <label className="font-label-caps text-label-caps text-on-surface-variant">New Password</label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Min 6 characters"
+                      className="w-full h-12 px-4 rounded-xl border-2 border-primary bg-surface font-body-lg text-body-lg text-on-surface focus:outline-none focus:ring-4 focus:ring-primary/20"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setShowPassword(false); setNewPassword(""); setPwMsg(""); }}
+                        className="flex-1 h-10 rounded-xl border-2 border-outline-variant font-label-caps text-label-caps text-sm"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleChangePassword}
+                        disabled={newPassword.length < 6}
+                        className="flex-1 h-10 rounded-xl bg-primary text-on-primary font-label-caps text-label-caps text-sm border-2 border-on-primary/20 disabled:opacity-50"
+                      >
+                        Update
+                      </button>
+                    </div>
+                    {pwMsg && <p className="text-center font-label-caps text-xs text-primary">{pwMsg}</p>}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Status message */}
             {msg && (

@@ -12,6 +12,9 @@ interface KidAccount {
   status: string;
   last_login: string | null;
   created_at: string;
+  daily_card_limit: number;
+  has_seen_onboarding: boolean;
+  is_paused: boolean;
 }
 
 interface Subject {
@@ -46,6 +49,13 @@ export default function KidDetailPage() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
   const [delStep, setDelStep] = useState(0);
+  const [dailyLimit, setDailyLimit] = useState(20);
+  const [resetTopicId, setResetTopicId] = useState("");
+  const [topics, setTopics] = useState<{ id: string; name: string; subject_id: string }[]>([]);
+  const [topicResetStep, setTopicResetStep] = useState(0);
+  const [allResetStep, setAllResetStep] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     if (!kidId) return;
@@ -58,11 +68,15 @@ export default function KidDetailPage() {
       .select("*")
       .eq("id", kidId)
       .single();
-    if (k) {
-      setKid(k);
-      setName(k.name);
-      setEmail(k.email);
+    if (!k) {
+      setLoading(false);
+      setNotFound(true);
+      return;
     }
+    setKid(k);
+    setName(k.name);
+    setEmail(k.email);
+    setDailyLimit(k.daily_card_limit ?? 20);
     const { data: s } = await supabase
       .from("subjects")
       .select("id,name,color,icon")
@@ -84,6 +98,12 @@ export default function KidDetailPage() {
       const authData = await authRes.json();
       setEmailConfirmed(authData.email_confirmed_at);
     }
+    const { data: t } = await supabase
+      .from("topics")
+      .select("id,name,subject_id")
+      .order("name");
+    if (t) setTopics(t);
+    setLoading(false);
   }
 
   async function saveName() {
@@ -116,6 +136,74 @@ export default function KidDetailPage() {
     } else {
       if (kid) setKid({ ...kid, email });
       setMsg("Email saved. Auth and kid_accounts are in sync.");
+    }
+  }
+
+  async function saveDailyLimit() {
+    setSaving(true);
+    setMsg("");
+    const { error } = await supabase
+      .from("kid_accounts")
+      .update({ daily_card_limit: dailyLimit })
+      .eq("id", kidId);
+    setSaving(false);
+    if (error) setMsg(error.message);
+    else {
+      if (kid) setKid({ ...kid, daily_card_limit: dailyLimit });
+      setMsg("Daily limit saved.");
+    }
+  }
+
+  async function togglePause() {
+    if (!kid) return;
+    const ns = !kid.is_paused;
+    const { error } = await supabase
+      .from("kid_accounts")
+      .update({ is_paused: ns })
+      .eq("id", kidId);
+    if (error) setMsg(error.message);
+    else setKid({ ...kid, is_paused: ns });
+  }
+
+  async function resetTopic() {
+    if (!resetTopicId) return;
+    setMsg("");
+    const { data: cards, error: fetchErr } = await supabase
+      .from("flashcards")
+      .select("id")
+      .eq("topic_id", resetTopicId);
+    if (fetchErr) {
+      setMsg(fetchErr.message);
+      return;
+    }
+    if (!cards || cards.length === 0) {
+      setMsg("No flashcards in this topic.");
+      return;
+    }
+    const cardIds = cards.map((c: { id: string }) => c.id);
+    const { error } = await supabase
+      .from("card_reviews")
+      .delete()
+      .eq("kid_id", kidId)
+      .in("flashcard_id", cardIds);
+    if (error) setMsg(error.message);
+    else {
+      setMsg("Topic progress reset.");
+      setTopicResetStep(0);
+      setResetTopicId("");
+    }
+  }
+
+  async function resetAllProgress() {
+    setMsg("");
+    const { error } = await supabase
+      .from("card_reviews")
+      .delete()
+      .eq("kid_id", kidId);
+    if (error) setMsg(error.message);
+    else {
+      setMsg("All progress reset.");
+      setAllResetStep(0);
     }
   }
 
@@ -176,10 +264,25 @@ export default function KidDetailPage() {
     else router.push("/admin/kids");
   }
 
-  if (!kid) {
+  if (loading) {
     return (
       <div className="bg-background min-h-screen flex items-center justify-center">
         <p className="text-on-surface-variant">Loading...</p>
+      </div>
+    );
+  }
+
+  if (notFound || !kid) {
+    return (
+      <div className="bg-background min-h-screen flex flex-col items-center justify-center p-6 gap-4">
+        <span className="material-symbols-outlined text-6xl text-outline-variant">person_off</span>
+        <p className="font-headline-md text-headline-md text-on-surface-variant">Kid not found</p>
+        <button
+          onClick={() => router.push("/admin/kids")}
+          className="h-12 px-6 rounded-xl bg-primary text-on-primary font-label-caps text-label-caps uppercase chunky-btn border-4 border-on-primary/20"
+        >
+          Back to Kids
+        </button>
       </div>
     );
   }
@@ -302,6 +405,103 @@ export default function KidDetailPage() {
                       </label>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* Daily Limit & Pause */}
+              <div className="pb-8 border-b-2 border-outline-variant/30">
+                <h3 className="font-headline-md text-headline-md text-on-surface mb-6">Learning Controls</h3>
+                <div className="flex flex-col md:flex-row items-start md:items-end gap-6">
+                  <div className="flex-1 space-y-2 w-full md:w-auto">
+                    <label className="font-label-caps text-label-caps text-on-surface-variant">Daily Card Limit</label>
+                    <div className="flex gap-3">
+                      <input
+                        className="w-24 h-14 px-4 rounded-xl border-2 border-primary bg-surface font-body-lg text-body-lg text-on-surface focus:outline-none focus:ring-4 focus:ring-primary/20 text-center"
+                        type="number"
+                        min={5}
+                        max={100}
+                        value={dailyLimit}
+                        onChange={(e) => setDailyLimit(Math.max(5, Math.min(100, Number(e.target.value))))}
+                      />
+                      <button onClick={saveDailyLimit} disabled={saving} className="h-14 px-6 rounded-xl bg-primary text-on-primary font-label-caps text-label-caps uppercase border-4 border-white chunky-btn shrink-0">
+                        {saving ? "..." : "Save"}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="font-body-lg text-body-lg">Pause Learning</span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={kid.is_paused}
+                        onChange={togglePause}
+                      />
+                      <div className="w-14 h-7 bg-outline-variant rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-error border-2 border-on-surface/50" />
+                    </label>
+                    <span className={`font-label-caps text-label-caps ${kid.is_paused ? "text-error" : "text-tertiary"}`}>
+                      {kid.is_paused ? "Paused" : "Active"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Reset Progress */}
+              <div className="pb-8 border-b-2 border-outline-variant/30">
+                <h3 className="font-headline-md text-headline-md text-on-surface mb-6">Reset Progress</h3>
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col md:flex-row items-start md:items-end gap-4">
+                    <div className="flex-1 space-y-2 w-full md:w-auto">
+                      <label className="font-label-caps text-label-caps text-on-surface-variant">Reset Topic</label>
+                      <select
+                        className="w-full h-14 px-4 rounded-xl border-2 border-primary bg-surface font-body-lg text-body-lg text-on-surface focus:outline-none focus:ring-4 focus:ring-primary/20"
+                        value={resetTopicId}
+                        onChange={(e) => { setResetTopicId(e.target.value); setTopicResetStep(0); }}
+                      >
+                        <option value="">Select a topic...</option>
+                        {topics.map((t) => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {resetTopicId && (
+                      topicResetStep === 0 ? (
+                        <button onClick={() => setTopicResetStep(1)} className="h-14 px-6 rounded-xl bg-error text-on-error font-label-caps text-label-caps uppercase border-4 border-white chunky-btn shrink-0 flex items-center gap-2">
+                          <span className="material-symbols-outlined">restart_alt</span>
+                          Reset Topic
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-error font-label-caps">Are you sure?</span>
+                          <button onClick={resetTopic} className="h-10 px-4 rounded-xl bg-error text-on-error font-label-caps text-label-caps text-sm border-2 border-on-error/20">
+                            Yes, Reset
+                          </button>
+                          <button onClick={() => setTopicResetStep(0)} className="h-10 px-4 rounded-xl border-2 border-outline-variant font-label-caps text-label-caps text-sm">
+                            Cancel
+                          </button>
+                        </div>
+                      )
+                    )}
+                  </div>
+                  <div className="flex flex-col md:flex-row items-start md:items-end gap-4 pt-4 border-t border-outline-variant/20">
+                    <p className="font-body-md text-on-surface-variant flex-1">Remove all review history for this kid across all topics.</p>
+                    {allResetStep === 0 ? (
+                      <button onClick={() => setAllResetStep(1)} className="h-14 px-6 rounded-xl bg-error text-on-error font-label-caps text-label-caps uppercase border-4 border-white chunky-btn shrink-0 flex items-center gap-2">
+                        <span className="material-symbols-outlined">delete_sweep</span>
+                        Reset All Progress
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-error font-label-caps">Are you sure? This cannot be undone.</span>
+                        <button onClick={resetAllProgress} className="h-10 px-4 rounded-xl bg-error text-on-error font-label-caps text-label-caps text-sm border-2 border-on-error/20">
+                          Yes, Reset All
+                        </button>
+                        <button onClick={() => setAllResetStep(0)} className="h-10 px-4 rounded-xl border-2 border-outline-variant font-label-caps text-label-caps text-sm">
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

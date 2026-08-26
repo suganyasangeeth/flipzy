@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
-
-interface Flashcard {
-  id: string;
-  front_text: string;
-  back_text: string;
-}
+import {
+  type DueCard,
+  type Rating,
+  type ReviewState,
+  fetchDueCards,
+  todayReviewedCount,
+  saveReview,
+  sm2,
+} from "@/lib/repetition";
 
 interface Topic {
   id: string;
@@ -21,6 +24,13 @@ interface Subject {
   name: string;
   color: string;
   icon: string;
+}
+
+interface KidProfile {
+  id: string;
+  daily_card_limit: number;
+  is_paused: boolean;
+  has_seen_onboarding: boolean;
 }
 
 function getIconColor(bgHex: string): string {
@@ -47,18 +57,18 @@ export default function FlashcardPage() {
 
   const [topic, setTopic] = useState<Topic | null>(null);
   const [subject, setSubject] = useState<Subject | null>(null);
-  const [cards, setCards] = useState<Flashcard[]>([]);
+  const [kid, setKid] = useState<KidProfile | null>(null);
+  const [dueCards, setDueCards] = useState<DueCard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [loading, setLoading] = useState(true);
   const [completed, setCompleted] = useState(false);
+  const [todayCount, setTodayCount] = useState(0);
+  const [onboardingStep, setOnboardingStep] = useState(0);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!topicId) return;
-    load();
-  }, [topicId]);
 
-  async function load() {
     const { data: t } = await supabase
       .from("topics")
       .select("id, name, subject_id")
@@ -74,19 +84,52 @@ export default function FlashcardPage() {
       if (s) setSubject(s);
     }
 
-    const { data: f } = await supabase
-      .from("flashcards")
-      .select("id, front_text, back_text")
-      .eq("topic_id", topicId)
-      .eq("status", "published")
-      .order("created_at", { ascending: true });
-    if (f) setCards(f);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    const { data: k } = await supabase
+      .from("kid_accounts")
+      .select("id, daily_card_limit, is_paused, has_seen_onboarding")
+      .eq("email", user.email)
+      .single();
+    if (k) {
+      setKid(k);
+      if (!k.has_seen_onboarding) setOnboardingStep(1);
+
+      if (!k.is_paused) {
+        const cards = await fetchDueCards(supabase, topicId, k.id);
+        const reviewed = await todayReviewedCount(supabase, k.id);
+        setTodayCount(reviewed);
+
+        const remaining = k.daily_card_limit - reviewed;
+        setDueCards(remaining > 0 ? cards.slice(0, remaining) : []);
+      }
+    }
 
     setLoading(false);
+  }, [topicId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  function dismissOnboarding() {
+    setOnboardingStep(0);
+    if (kid) {
+      supabase
+        .from("kid_accounts")
+        .update({ has_seen_onboarding: true })
+        .eq("id", kid.id);
+    }
   }
 
   function goNext() {
-    if (currentIndex < cards.length - 1) {
+    if (currentIndex < dueCards.length - 1) {
       setFlipped(false);
       setTimeout(() => setCurrentIndex(currentIndex + 1), 50);
     } else {
@@ -101,10 +144,36 @@ export default function FlashcardPage() {
     }
   }
 
+  async function handleRate(rating: Rating) {
+    if (!kid || currentIndex >= dueCards.length) return;
+    const card = dueCards[currentIndex];
+    const state: ReviewState = {
+      ease_factor: card.ease_factor,
+      interval_days: card.interval_days,
+    };
+
+    try {
+      await saveReview(supabase, kid.id, card.flashcard_id, rating, state);
+      setTodayCount((c) => c + 1);
+
+      const updated = { ...card, ...sm2(rating, state) };
+      const newCards = [...dueCards];
+      newCards[currentIndex] = updated;
+      setDueCards(newCards);
+
+      goNext();
+    } catch {
+      // ignore save errors silently
+    }
+  }
+
   function playAgain() {
+    setLoading(true);
+    setCompleted(false);
     setCurrentIndex(0);
     setFlipped(false);
-    setCompleted(false);
+    setDueCards([]);
+    load();
   }
 
   if (loading) {
@@ -115,7 +184,7 @@ export default function FlashcardPage() {
     );
   }
 
-  if (cards.length === 0) {
+  if (kid?.is_paused) {
     return (
       <div className="bg-background min-h-screen flex flex-col">
         <header className="w-full bg-arcade-surface border-b-2 border-arcade-border flex items-center px-4 md:px-6 h-16 md:h-20 shrink-0">
@@ -127,32 +196,65 @@ export default function FlashcardPage() {
             <span className="font-label-caps text-xs hidden md:inline">Back</span>
           </button>
           <div className="flex-1 flex justify-center">
-            <img
-              src="/brand/flipzy-logo-horizontal.svg"
-              alt="Flipzy"
-              className="h-10 md:h-14"
-            />
+            <img src="/brand/flipzy-logo-horizontal.svg" alt="Flipzy" className="h-10 md:h-14" />
           </div>
           <div className="w-20 shrink-0" />
         </header>
         <main className="flex-1 flex flex-col items-center justify-center p-6">
-          <span className="material-symbols-outlined text-6xl text-outline-variant mb-4">inventory_2</span>
-          <p className="font-headline-md text-headline-md text-on-surface-variant">
-            No flashcards in this topic yet
+          <span className="material-symbols-outlined text-6xl text-outline-variant mb-4">pause_circle</span>
+          <p className="font-headline-md text-headline-md text-on-surface-variant text-center">
+            Learning is paused
           </p>
-          <p className="font-body-md text-on-surface-variant opacity-70 mt-2">
-            Ask an admin to upload some flashcards!
+          <p className="font-body-md text-on-surface-variant opacity-70 mt-2 text-center">
+            Ask an admin to unpause your account.
           </p>
         </main>
       </div>
     );
   }
 
-  // Completion screen
+  if (dueCards.length === 0 && !loading) {
+    return (
+      <div className="bg-background min-h-screen flex flex-col">
+        <header className="w-full bg-arcade-surface border-b-2 border-arcade-border flex items-center px-4 md:px-6 h-16 md:h-20 shrink-0">
+          <button
+            onClick={() => router.push(`/subjects/${subject?.id || ""}`)}
+            className="flex items-center gap-2 bg-surface-container-highest rounded-full px-4 py-2 border border-outline-variant text-primary hover:bg-surface-variant transition-colors active:translate-y-0.5 shrink-0"
+          >
+            <span className="material-symbols-outlined text-lg">arrow_back</span>
+            <span className="font-label-caps text-xs hidden md:inline">Back</span>
+          </button>
+          <div className="flex-1 flex justify-center">
+            <img src="/brand/flipzy-logo-horizontal.svg" alt="Flipzy" className="h-10 md:h-14" />
+          </div>
+          <div className="w-20 shrink-0" />
+        </header>
+        <main className="flex-1 flex flex-col items-center justify-center p-6">
+          <span className="material-symbols-outlined text-6xl text-tertiary mb-4">check_circle</span>
+          <p className="font-headline-md text-headline-md text-on-surface text-center">
+            {todayCount >= (kid?.daily_card_limit ?? 20)
+              ? "Daily limit reached!"
+              : "All caught up!"}
+          </p>
+          <p className="font-body-md text-on-surface-variant opacity-70 mt-2 text-center">
+            {todayCount >= (kid?.daily_card_limit ?? 20)
+              ? "Come back tomorrow for more cards."
+              : "No cards to review right now. Check back later!"}
+          </p>
+          <button
+            onClick={() => router.push(`/subjects/${subject?.id || ""}`)}
+            className="mt-6 h-12 px-6 rounded-xl bg-primary text-on-primary font-label-caps text-label-caps uppercase chunky-btn border-4 border-on-primary/20"
+          >
+            Choose Topic
+          </button>
+        </main>
+      </div>
+    );
+  }
+
   if (completed) {
     return (
       <div className="bg-background min-h-screen flex flex-col items-center justify-center p-4 md:p-8 relative overflow-hidden">
-        {/* Sparkle decorations */}
         <span className="absolute top-[15%] left-[12%] text-4xl md:text-6xl opacity-60" style={{ animation: "sparkle-pulse 2s ease-in-out infinite" }}>✨</span>
         <span className="absolute top-[20%] right-[15%] text-3xl md:text-5xl opacity-50" style={{ animation: "sparkle-pulse 2.5s ease-in-out infinite 0.5s" }}>⭐</span>
         <span className="absolute bottom-[25%] left-[18%] text-3xl md:text-4xl opacity-50" style={{ animation: "sparkle-pulse 3s ease-in-out infinite 1s" }}>🌟</span>
@@ -163,7 +265,7 @@ export default function FlashcardPage() {
             Great Job! 🎉
           </h1>
           <p className="font-headline-lg text-base md:text-headline-lg text-on-surface mb-6 md:mb-12">
-            You completed the session!
+            You reviewed {dueCards.length} card{dueCards.length !== 1 ? "s" : ""}!
           </p>
           <div className="flex flex-col w-full max-w-sm gap-3 md:gap-stack-gap">
             <button
@@ -171,7 +273,7 @@ export default function FlashcardPage() {
               className="w-full h-14 md:h-20 bg-primary rounded-full flex items-center justify-center gap-2 text-on-primary font-headline-md text-sm md:text-headline-md uppercase transition-transform hover:scale-105 active:scale-95 chunky-btn border-2 md:border-4 border-on-primary/20"
             >
               <span className="material-symbols-outlined text-2xl md:text-[32px]">replay</span>
-              Play Again
+              Review Again
             </button>
             <button
               onClick={() => router.push(`/subjects/${subject?.id || ""}`)}
@@ -186,12 +288,83 @@ export default function FlashcardPage() {
     );
   }
 
-  const card = cards[currentIndex];
-  const progress = ((currentIndex + 1) / cards.length) * 100;
+  const card = dueCards[currentIndex];
+  const progress = ((currentIndex + 1) / dueCards.length) * 100;
+  const limitReached = todayCount >= (kid?.daily_card_limit ?? 20);
 
   return (
     <div className="bg-background min-h-screen flex flex-col font-display-hero select-none">
-      {/* Header — back pill + centered logo */}
+      {/* Onboarding walkthrough */}
+      {onboardingStep > 0 && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-arcade-surface rounded-2xl p-6 md:p-8 max-w-md w-full border-t-4 border-primary shadow-card-ambient text-center">
+            {/* Step indicators */}
+            <div className="flex justify-center gap-2 mb-6">
+              {[1, 2, 3].map((s) => (
+                <div
+                  key={s}
+                  className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                    s === onboardingStep ? "bg-primary" : "bg-outline-variant"
+                  }`}
+                />
+              ))}
+            </div>
+
+            {onboardingStep === 1 && (
+              <>
+                <span className="material-symbols-outlined text-6xl text-secondary mb-4">touch_app</span>
+                <h2 className="font-headline-lg text-headline-lg text-on-surface mb-3">
+                  Tap to Reveal
+                </h2>
+                <p className="font-body-md text-on-surface-variant mb-6">
+                  Tap any card to flip it and see the answer on the other side.
+                </p>
+              </>
+            )}
+            {onboardingStep === 2 && (
+              <>
+                <span className="material-symbols-outlined text-6xl text-tertiary mb-4">rate_review</span>
+                <h2 className="font-headline-lg text-headline-lg text-on-surface mb-3">
+                  Rate Yourself
+                </h2>
+                <p className="font-body-md text-on-surface-variant mb-6">
+                  After revealing the answer, pick <strong>Hard</strong>, <strong>Good</strong>, or <strong>Easy</strong> to tell Flipzy how well you knew it.
+                </p>
+              </>
+            )}
+            {onboardingStep === 3 && (
+              <>
+                <span className="material-symbols-outlined text-6xl text-primary mb-4">auto_awesome</span>
+                <h2 className="font-headline-lg text-headline-lg text-on-surface mb-3">
+                  Smart Repetition
+                </h2>
+                <p className="font-body-md text-on-surface-variant mb-6">
+                  Cards you find hard will show up more often. Easy ones space out over time. It adapts to you!
+                </p>
+              </>
+            )}
+
+            <div className="flex gap-3">
+              {onboardingStep > 1 && (
+                <button
+                  onClick={() => setOnboardingStep(onboardingStep - 1)}
+                  className="flex-1 h-14 bg-surface-container-lowest text-on-surface font-label-caps text-label-caps uppercase rounded-xl border-2 border-outline-variant"
+                >
+                  Back
+                </button>
+              )}
+              <button
+                onClick={onboardingStep < 3 ? () => setOnboardingStep(onboardingStep + 1) : dismissOnboarding}
+                className="flex-1 h-14 bg-primary text-on-primary font-label-caps text-label-caps uppercase rounded-xl chunky-btn border-4 border-on-primary/20"
+              >
+                {onboardingStep < 3 ? "Next" : "Got it!"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
       <header className="w-full bg-arcade-surface border-b-2 border-arcade-border flex items-center px-4 md:px-6 h-16 md:h-20 shrink-0">
         <button
           onClick={() => router.push(`/subjects/${subject?.id || ""}`)}
@@ -201,16 +374,12 @@ export default function FlashcardPage() {
           <span className="font-label-caps text-xs hidden md:inline">Back</span>
         </button>
         <div className="flex-1 flex justify-center">
-          <img
-            src="/brand/flipzy-logo-horizontal.svg"
-            alt="Flipzy"
-            className="h-10 md:h-14"
-          />
+          <img src="/brand/flipzy-logo-horizontal.svg" alt="Flipzy" className="h-10 md:h-14" />
         </div>
         <div className="w-20 shrink-0" />
       </header>
 
-      {/* Subject + Topic — shadow container */}
+      {/* Subject + Topic */}
       <div className="w-full px-4 md:px-6 pt-4 md:pt-5">
         <div className="max-w-3xl mx-auto bg-arcade-surface rounded-2xl shadow-card-ambient px-5 py-3 md:px-6 md:py-3.5 flex items-center gap-3">
           {subject && (
@@ -238,7 +407,10 @@ export default function FlashcardPage() {
       {/* Progress bar */}
       <div className="w-full flex flex-col items-center gap-1.5 md:gap-2 px-4 pt-3 md:pt-4 pb-1">
         <div className="font-headline-md text-sm md:text-headline-md text-on-surface text-center">
-          {currentIndex + 1} / {cards.length}
+          {currentIndex + 1} / {dueCards.length}
+          <span className="text-on-surface-variant ml-2 text-xs md:text-sm">
+            ({todayCount} reviewed today)
+          </span>
         </div>
         <div className="w-full max-w-md h-3 md:h-4 bg-arcade-border rounded-full border-1 md:border-2 overflow-hidden relative">
           <div
@@ -248,19 +420,19 @@ export default function FlashcardPage() {
         </div>
       </div>
 
-      {/* Main — card + controls stacked */}
+      {/* Main — card + controls */}
       <main className="flex-1 flex flex-col items-center px-4 md:px-6 pt-3 md:pt-4 pb-4 md:pb-6 max-w-3xl mx-auto w-full">
         {/* Flashcard */}
         <div
           className="w-full aspect-[4/3] md:aspect-[16/9] perspective-1000 mb-3 md:mb-4 cursor-pointer group"
-          onClick={() => setFlipped(!flipped)}
+          onClick={() => !flipped && setFlipped(true)}
         >
           <div
             className={`w-full h-full relative transform-style-3d transition-transform duration-500 ease-in-out ${
               flipped ? "rotate-y-180" : ""
             }`}
           >
-            {/* Front — white face (matches logo front card) */}
+            {/* Front */}
             <div className="absolute inset-0 backface-hidden bg-white flex flex-col items-center justify-center p-5 md:p-8 shadow-2xl rounded-3xl border-2 border-secondary border-t-4 border-t-secondary transition-all duration-200 group-hover:scale-[1.01]">
               <div className="absolute top-3 right-3 md:top-4 md:right-4">
                 <span className="material-symbols-outlined text-lg md:text-xl text-secondary/20" style={{ fontVariationSettings: "'FILL' 1" }}>
@@ -276,7 +448,7 @@ export default function FlashcardPage() {
                 </span>
               </div>
             </div>
-            {/* Back — yellow face (matches logo rear card) */}
+            {/* Back */}
             <div className="absolute inset-0 backface-hidden rotate-y-180 bg-gradient-to-br from-[#FFD83D] to-[#FFC20A] flex flex-col items-center justify-center p-5 md:p-8 shadow-2xl rounded-3xl border-2 border-primary">
               <div className="absolute top-3 right-3 md:top-4 md:right-4">
                 <span className="material-symbols-outlined text-lg md:text-xl text-primary/20" style={{ fontVariationSettings: "'FILL' 1" }}>
@@ -288,7 +460,7 @@ export default function FlashcardPage() {
               </p>
               <div className="absolute bottom-3 md:bottom-4">
                 <span className="font-label-caps text-xs text-primary/60 uppercase">
-                  Tap to flip back
+                  Rate your answer
                 </span>
               </div>
             </div>
@@ -296,23 +468,52 @@ export default function FlashcardPage() {
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-between w-full max-w-sm gap-3 md:gap-4">
-          <button
-            onClick={goPrev}
-            disabled={currentIndex === 0}
-            className="flex-1 h-12 md:h-14 bg-surface-container-lowest rounded-full flex items-center justify-center gap-2 text-on-surface font-headline-md text-sm md:text-headline-md uppercase transition-transform shadow-lg disabled:opacity-40 disabled:cursor-not-allowed border-2 border-outline-variant hover:translate-y-0.5"
-          >
-            <span className="material-symbols-outlined text-lg md:text-xl">arrow_back_ios</span>
-            Prev
-          </button>
-          <button
-            onClick={goNext}
-            className="flex-1 h-12 md:h-14 bg-primary rounded-full flex items-center justify-center gap-2 text-on-primary font-headline-md text-sm md:text-headline-md uppercase transition-transform shadow-lg chunky-btn border-2 md:border-4 border-on-primary/20 hover:translate-y-0.5"
-          >
-            {currentIndex === cards.length - 1 ? "Finish" : "Next"}
-            <span className="material-symbols-outlined text-lg md:text-xl">arrow_forward_ios</span>
-          </button>
-        </div>
+        {flipped ? (
+          <div className="flex items-center gap-3 md:gap-4 w-full max-w-lg">
+            <button
+              onClick={() => handleRate("hard")}
+              disabled={limitReached}
+              className="flex-1 h-12 md:h-14 bg-error/10 text-error rounded-full flex items-center justify-center gap-2 font-headline-md text-sm md:text-headline-md uppercase transition-all hover:bg-error/20 active:scale-95 border-2 border-error/30 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <span className="material-symbols-outlined text-lg md:text-xl">sentiment_dissatisfied</span>
+              Hard
+            </button>
+            <button
+              onClick={() => handleRate("good")}
+              disabled={limitReached}
+              className="flex-1 h-12 md:h-14 bg-secondary/10 text-secondary rounded-full flex items-center justify-center gap-2 font-headline-md text-sm md:text-headline-md uppercase transition-all hover:bg-secondary/20 active:scale-95 border-2 border-secondary/30 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <span className="material-symbols-outlined text-lg md:text-xl">sentiment_satisfied</span>
+              Good
+            </button>
+            <button
+              onClick={() => handleRate("easy")}
+              disabled={limitReached}
+              className="flex-1 h-12 md:h-14 bg-tertiary/10 text-tertiary rounded-full flex items-center justify-center gap-2 font-headline-md text-sm md:text-headline-md uppercase transition-all hover:bg-tertiary/20 active:scale-95 border-2 border-tertiary/30 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <span className="material-symbols-outlined text-lg md:text-xl">sentiment_very_satisfied</span>
+              Easy
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between w-full max-w-sm gap-3 md:gap-4">
+            <button
+              onClick={goPrev}
+              disabled={currentIndex === 0}
+              className="flex-1 h-12 md:h-14 bg-surface-container-lowest rounded-full flex items-center justify-center gap-2 text-on-surface font-headline-md text-sm md:text-headline-md uppercase transition-transform shadow-lg disabled:opacity-40 disabled:cursor-not-allowed border-2 border-outline-variant hover:translate-y-0.5"
+            >
+              <span className="material-symbols-outlined text-lg md:text-xl">arrow_back_ios</span>
+              Prev
+            </button>
+            <button
+              onClick={() => setFlipped(true)}
+              className="flex-1 h-12 md:h-14 bg-primary rounded-full flex items-center justify-center gap-2 text-on-primary font-headline-md text-sm md:text-headline-md uppercase transition-transform shadow-lg chunky-btn border-2 md:border-4 border-on-primary/20 hover:translate-y-0.5"
+            >
+              Reveal
+              <span className="material-symbols-outlined text-lg md:text-xl">arrow_forward_ios</span>
+            </button>
+          </div>
+        )}
       </main>
     </div>
   );

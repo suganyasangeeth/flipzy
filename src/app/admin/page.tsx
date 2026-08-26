@@ -84,6 +84,8 @@ export default function AdminPage() {
 
   const [dragTopicId, setDragTopicId] = useState<string | null>(null);
   const [dragOverTopicId, setDragOverTopicId] = useState<string | null>(null);
+  const [dragSubjectId, setDragSubjectId] = useState<string | null>(null);
+  const [dragOverSubjectId, setDragOverSubjectId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSubjects();
@@ -269,6 +271,54 @@ export default function AdminPage() {
   function handleDragEnd() {
     setDragTopicId(null);
     setDragOverTopicId(null);
+    setDragSubjectId(null);
+    setDragOverSubjectId(null);
+  }
+
+  function handleSubjectDragStart(e: React.DragEvent, subjectId: string) {
+    setDragSubjectId(subjectId);
+    e.dataTransfer.effectAllowed = "move";
+  }
+
+  function handleSubjectDragOver(e: React.DragEvent, subjectId: string) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverSubjectId(subjectId);
+  }
+
+  async function handleSubjectDrop(e: React.DragEvent, targetSubjectId: string) {
+    e.preventDefault();
+    setDragSubjectId(null);
+    setDragOverSubjectId(null);
+
+    if (!dragSubjectId || dragSubjectId === targetSubjectId) return;
+
+    const draggedIdx = subjects.findIndex((s) => s.id === dragSubjectId);
+    const targetIdx = subjects.findIndex((s) => s.id === targetSubjectId);
+    if (draggedIdx === -1 || targetIdx === -1) return;
+
+    const reordered = [...subjects];
+    const [moved] = reordered.splice(draggedIdx, 1);
+    reordered.splice(targetIdx, 0, moved);
+
+    const updated = reordered.map((s, i) => ({ ...s, order: i + 1 }));
+    setSubjects(updated);
+
+    const updates = updated.map((s) =>
+      supabase.from("subjects").update({ order: s.order }).eq("id", s.id)
+    );
+    await Promise.all(updates);
+  }
+
+  async function toggleSubjectVisibility(subject: Subject) {
+    const next = !subject.visible;
+    setSubjects((prev) =>
+      prev.map((s) => (s.id === subject.id ? { ...s, visible: next } : s))
+    );
+    await supabase
+      .from("subjects")
+      .update({ visible: next })
+      .eq("id", subject.id);
   }
 
   return (
@@ -373,11 +423,23 @@ export default function AdminPage() {
               return (
                 <div
                   key={subject.id}
-                  className="bg-arcade-surface rounded-2xl border-2 border-primary overflow-hidden shadow-card-ambient flex flex-col"
+                  draggable
+                  onDragStart={(e) => handleSubjectDragStart(e, subject.id)}
+                  onDragOver={(e) => handleSubjectDragOver(e, subject.id)}
+                  onDrop={(e) => handleSubjectDrop(e, subject.id)}
+                  onDragEnd={handleDragEnd}
+                  className={`bg-arcade-surface rounded-2xl border-2 border-primary overflow-hidden shadow-card-ambient flex flex-col transition-colors ${
+                    dragOverSubjectId === subject.id
+                      ? "ring-2 ring-primary/40"
+                      : ""
+                  } ${dragSubjectId === subject.id ? "opacity-50" : ""}`}
                 >
                   {/* Subject header */}
                   <div className="p-card-padding border-b-2 border-primary/10 flex justify-between items-center bg-gradient-to-r from-accent-space/20 to-transparent">
                     <div className="flex items-center gap-4">
+                      <span className="material-symbols-outlined text-on-surface-variant cursor-grab active:cursor-grabbing shrink-0 hidden md:block">
+                        drag_indicator
+                      </span>
                       <div
                         className="w-16 h-16 bg-white rounded-xl border-2 border-primary flex items-center justify-center"
                         style={{
@@ -404,6 +466,15 @@ export default function AdminPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      <label className="relative inline-flex items-center cursor-pointer mr-2" title={subject.visible ? "Visible to kids" : "Hidden from kids"}>
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={subject.visible}
+                          onChange={() => toggleSubjectVisibility(subject)}
+                        />
+                        <div className="w-10 h-5 bg-outline-variant rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-tertiary-fixed-dim border border-tertiary" />
+                      </label>
                       <button
                         onClick={() => openEditSubject(subject)}
                         className="p-2 text-primary hover:bg-surface-variant rounded-lg transition-colors"
