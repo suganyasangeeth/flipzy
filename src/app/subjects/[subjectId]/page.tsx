@@ -18,6 +18,8 @@ interface Topic {
   name: string;
   description: string;
   order: number;
+  flashcard_count?: number;
+  reviewed_count?: number;
 }
 
 function getIconColor(bgHex: string): string {
@@ -55,7 +57,68 @@ export default function TopicSelectorPage() {
       .select("id, subject_id, name, description, order")
       .eq("subject_id", subjectId)
       .order("order", { ascending: true });
-    if (t) setTopics(t);
+
+    if (t && t.length > 0) {
+      const topicIds = t.map((tp: { id: string }) => tp.id);
+
+      const { data: cardCounts } = await supabase
+        .from("flashcards")
+        .select("topic_id")
+        .in("topic_id", topicIds)
+        .eq("status", "published");
+
+      const countMap: Record<string, number> = {};
+      (cardCounts ?? []).forEach((c: { topic_id: string }) => {
+        countMap[c.topic_id] = (countMap[c.topic_id] || 0) + 1;
+      });
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const reviewedMap: Record<string, number> = {};
+      if (user) {
+        const { data: kid } = await supabase
+          .from("kid_accounts")
+          .select("id")
+          .eq("email", user.email)
+          .single();
+        if (kid) {
+          const allCardIds = (cardCounts ?? []).map((c: { topic_id: string }) => c.topic_id);
+          if (allCardIds.length > 0) {
+            const { data: cards } = await supabase
+              .from("flashcards")
+              .select("id, topic_id")
+              .in("topic_id", topicIds)
+              .eq("status", "published");
+            if (cards && cards.length > 0) {
+              const cardIdList = cards.map((c: { id: string }) => c.id);
+              const { data: reviews } = await supabase
+                .from("card_reviews")
+                .select("flashcard_id")
+                .eq("kid_id", kid.id)
+                .in("flashcard_id", cardIdList);
+              const reviewedCardIds = new Set(
+                (reviews ?? []).map((r: { flashcard_id: string }) => r.flashcard_id)
+              );
+              cards.forEach((c: { id: string; topic_id: string }) => {
+                if (reviewedCardIds.has(c.id)) {
+                  reviewedMap[c.topic_id] = (reviewedMap[c.topic_id] || 0) + 1;
+                }
+              });
+            }
+          }
+        }
+      }
+
+      const enriched = t.map((tp: Topic) => ({
+        ...tp,
+        flashcard_count: countMap[tp.id] || 0,
+        reviewed_count: reviewedMap[tp.id] || 0,
+      }));
+      setTopics(enriched);
+    } else {
+      setTopics(t || []);
+    }
 
     setLoading(false);
   }
@@ -181,7 +244,7 @@ export default function TopicSelectorPage() {
                   className="group bg-arcade-surface rounded-xl border-2 border-arcade-border border-l-4 p-3 md:p-6 flex items-center justify-between gap-3 md:gap-4 transition-all duration-200 ease-out shadow-card-ambient hover:translate-x-1 hover:shadow-card-ambient hover:border-primary/40 text-left w-full active:translate-y-0.5 active:shadow-card-ambient-active cursor-pointer"
                   style={{ borderLeftColor: subject.color }}
                 >
-                  <div className="flex flex-col items-start gap-0.5 md:gap-1 min-w-0">
+                  <div className="flex flex-col items-start gap-0.5 md:gap-1 min-w-0 flex-1">
                     <span className="font-headline-md text-sm md:text-headline-md text-on-surface truncate w-full">
                       {topic.name}
                     </span>
@@ -191,9 +254,22 @@ export default function TopicSelectorPage() {
                       </span>
                     )}
                   </div>
-                  <span className="material-symbols-outlined shrink-0 text-accent-food transition-transform duration-200 group-hover:translate-x-1">
-                    chevron_right
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {topic.flashcard_count !== undefined && topic.flashcard_count > 0 && (
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-label-caps border ${
+                          (topic.reviewed_count ?? 0) >= topic.flashcard_count!
+                            ? "bg-tertiary-fixed text-on-tertiary-fixed border-tertiary"
+                            : "bg-surface-container-low text-on-surface-variant border-outline-variant/50"
+                        }`}
+                      >
+                        {topic.reviewed_count ?? 0}/{topic.flashcard_count}
+                      </span>
+                    )}
+                    <span className="material-symbols-outlined text-accent-food transition-transform duration-200 group-hover:translate-x-1">
+                      chevron_right
+                    </span>
+                  </div>
                 </button>
               ))}
             </div>

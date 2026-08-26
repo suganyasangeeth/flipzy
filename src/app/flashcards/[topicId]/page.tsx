@@ -11,6 +11,7 @@ import {
   todayReviewedCount,
   saveReview,
   sm2,
+  topicStats,
 } from "@/lib/repetition";
 
 interface Topic {
@@ -65,6 +66,8 @@ export default function FlashcardPage() {
   const [completed, setCompleted] = useState(false);
   const [todayCount, setTodayCount] = useState(0);
   const [onboardingStep, setOnboardingStep] = useState(0);
+  const [limitOverride, setLimitOverride] = useState(false);
+  const [topicStatsData, setTopicStatsData] = useState<{ reviewed: number; total: number } | null>(null);
 
   const load = useCallback(async () => {
     if (!topicId) return;
@@ -103,11 +106,15 @@ export default function FlashcardPage() {
 
       if (!k.is_paused) {
         const cards = await fetchDueCards(supabase, topicId, k.id);
-        const reviewed = await todayReviewedCount(supabase, k.id);
+        const reviewed = await todayReviewedCount(supabase, k.id, topicId);
         setTodayCount(reviewed);
+        setLimitOverride(false);
+
+        const stats = await topicStats(supabase, k.id, topicId);
+        setTopicStatsData(stats);
 
         const remaining = k.daily_card_limit - reviewed;
-        setDueCards(remaining > 0 ? cards.slice(0, remaining) : []);
+        setDueCards(remaining > 0 ? cards.slice(0, remaining) : cards);
       }
     }
 
@@ -232,14 +239,10 @@ export default function FlashcardPage() {
         <main className="flex-1 flex flex-col items-center justify-center p-6">
           <span className="material-symbols-outlined text-6xl text-tertiary mb-4">check_circle</span>
           <p className="font-headline-md text-headline-md text-on-surface text-center">
-            {todayCount >= (kid?.daily_card_limit ?? 20)
-              ? "Daily limit reached!"
-              : "All caught up!"}
+            All caught up!
           </p>
           <p className="font-body-md text-on-surface-variant opacity-70 mt-2 text-center">
-            {todayCount >= (kid?.daily_card_limit ?? 20)
-              ? "Come back tomorrow for more cards."
-              : "No cards to review right now. Check back later!"}
+            No cards to review right now. Check back later!
           </p>
           <button
             onClick={() => router.push(`/subjects/${subject?.id || ""}`)}
@@ -290,7 +293,6 @@ export default function FlashcardPage() {
 
   const card = dueCards[currentIndex];
   const progress = ((currentIndex + 1) / dueCards.length) * 100;
-  const limitReached = todayCount >= (kid?.daily_card_limit ?? 20);
 
   return (
     <div className="bg-background min-h-screen flex flex-col font-display-hero select-none">
@@ -408,9 +410,11 @@ export default function FlashcardPage() {
       <div className="w-full flex flex-col items-center gap-1.5 md:gap-2 px-4 pt-3 md:pt-4 pb-1">
         <div className="font-headline-md text-sm md:text-headline-md text-on-surface text-center">
           {currentIndex + 1} / {dueCards.length}
-          <span className="text-on-surface-variant ml-2 text-xs md:text-sm">
-            ({todayCount} reviewed today)
-          </span>
+          {topicStatsData && (
+            <span className="text-on-surface-variant ml-2 text-xs md:text-sm">
+              ({topicStatsData.reviewed}/{topicStatsData.total} learned)
+            </span>
+          )}
         </div>
         <div className="w-full max-w-md h-3 md:h-4 bg-arcade-border rounded-full border-1 md:border-2 overflow-hidden relative">
           <div
@@ -422,6 +426,21 @@ export default function FlashcardPage() {
 
       {/* Main — card + controls */}
       <main className="flex-1 flex flex-col items-center px-4 md:px-6 pt-3 md:pt-4 pb-4 md:pb-6 max-w-3xl mx-auto w-full">
+        {/* Daily limit banner */}
+        {todayCount >= (kid?.daily_card_limit ?? 20) && !limitOverride && (
+          <div className="w-full max-w-md mb-3 bg-tertiary/10 border-2 border-tertiary/30 rounded-xl p-3 flex items-center gap-3">
+            <span className="material-symbols-outlined text-2xl text-tertiary shrink-0">flag</span>
+            <p className="font-body-md text-on-surface text-sm flex-1">
+              Daily limit reached for this topic!
+            </p>
+            <button
+              onClick={() => setLimitOverride(true)}
+              className="shrink-0 h-8 px-3 rounded-lg bg-tertiary text-on-tertiary font-label-caps text-xs uppercase border-2 border-on-tertiary/20"
+            >
+              Continue
+            </button>
+          </div>
+        )}
         {/* Flashcard */}
         <div
           className="w-full aspect-[4/3] md:aspect-[16/9] perspective-1000 mb-3 md:mb-4 cursor-pointer group"
@@ -472,24 +491,21 @@ export default function FlashcardPage() {
           <div className="flex items-center gap-3 md:gap-4 w-full max-w-lg">
             <button
               onClick={() => handleRate("hard")}
-              disabled={limitReached}
-              className="flex-1 h-12 md:h-14 bg-error/10 text-error rounded-full flex items-center justify-center gap-2 font-headline-md text-sm md:text-headline-md uppercase transition-all hover:bg-error/20 active:scale-95 border-2 border-error/30 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 h-12 md:h-14 bg-error/10 text-error rounded-full flex items-center justify-center gap-2 font-headline-md text-sm md:text-headline-md uppercase transition-all hover:bg-error/20 active:scale-95 border-2 border-error/30"
             >
               <span className="material-symbols-outlined text-lg md:text-xl">sentiment_dissatisfied</span>
               Hard
             </button>
             <button
               onClick={() => handleRate("good")}
-              disabled={limitReached}
-              className="flex-1 h-12 md:h-14 bg-secondary/10 text-secondary rounded-full flex items-center justify-center gap-2 font-headline-md text-sm md:text-headline-md uppercase transition-all hover:bg-secondary/20 active:scale-95 border-2 border-secondary/30 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 h-12 md:h-14 bg-secondary/10 text-secondary rounded-full flex items-center justify-center gap-2 font-headline-md text-sm md:text-headline-md uppercase transition-all hover:bg-secondary/20 active:scale-95 border-2 border-secondary/30"
             >
               <span className="material-symbols-outlined text-lg md:text-xl">sentiment_satisfied</span>
               Good
             </button>
             <button
               onClick={() => handleRate("easy")}
-              disabled={limitReached}
-              className="flex-1 h-12 md:h-14 bg-tertiary/10 text-tertiary rounded-full flex items-center justify-center gap-2 font-headline-md text-sm md:text-headline-md uppercase transition-all hover:bg-tertiary/20 active:scale-95 border-2 border-tertiary/30 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 h-12 md:h-14 bg-tertiary/10 text-tertiary rounded-full flex items-center justify-center gap-2 font-headline-md text-sm md:text-headline-md uppercase transition-all hover:bg-tertiary/20 active:scale-95 border-2 border-tertiary/30"
             >
               <span className="material-symbols-outlined text-lg md:text-xl">sentiment_very_satisfied</span>
               Easy

@@ -134,18 +134,60 @@ export async function fetchDueCards(
 
 export async function todayReviewedCount(
   supabase: SupabaseClient,
-  kidId: string
+  kidId: string,
+  topicId?: string
 ): Promise<number> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
+  if (topicId) {
+    const { data: flashcards } = await supabase
+      .from("flashcards")
+      .select("id")
+      .eq("topic_id", topicId);
+    if (!flashcards || flashcards.length === 0) return 0;
+    const cardIds = flashcards.map((c: { id: string }) => c.id);
+
+    const { count } = await supabase
+      .from("card_reviews")
+      .select("id", { count: "exact", head: true })
+      .eq("kid_id", kidId)
+      .in("flashcard_id", cardIds)
+      .gte("created_at", today.toISOString());
+    return count ?? 0;
+  }
 
   const { count } = await supabase
     .from("card_reviews")
     .select("id", { count: "exact", head: true })
     .eq("kid_id", kidId)
     .gte("created_at", today.toISOString());
-
   return count ?? 0;
+}
+
+export async function topicStats(
+  supabase: SupabaseClient,
+  kidId: string,
+  topicId: string
+): Promise<{ reviewed: number; total: number }> {
+  const { data: flashcards } = await supabase
+    .from("flashcards")
+    .select("id")
+    .eq("topic_id", topicId)
+    .eq("status", "published");
+  if (!flashcards || flashcards.length === 0) return { reviewed: 0, total: 0 };
+
+  const cardIds = flashcards.map((c: { id: string }) => c.id);
+  const { data: reviews } = await supabase
+    .from("card_reviews")
+    .select("flashcard_id")
+    .eq("kid_id", kidId)
+    .in("flashcard_id", cardIds);
+
+  return {
+    reviewed: reviews?.length ?? 0,
+    total: flashcards.length,
+  };
 }
 
 export async function saveReview(

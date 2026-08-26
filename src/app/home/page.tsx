@@ -25,8 +25,8 @@ export default function HomePage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [kidName, setKidName] = useState<string>("");
   const [loading, setLoading] = useState(true);
-  const [showTip, setShowTip] = useState(false);
   const [allHidden, setAllHidden] = useState(false);
+  const [stats, setStats] = useState<{ reviews: number; topics: number; cards: number } | null>(null);
 
   useEffect(() => {
     async function fetchSubjects() {
@@ -38,12 +38,44 @@ export default function HomePage() {
 
       const { data: kid } = await supabase
         .from("kid_accounts")
-        .select("id, name, has_seen_onboarding")
+        .select("id, name")
         .eq("email", user.email)
         .single();
 
       if (kid?.name) setKidName(kid.name);
-      if (kid && !kid.has_seen_onboarding) setShowTip(true);
+
+      if (kid) {
+        const { count: reviews } = await supabase
+          .from("card_reviews")
+          .select("id", { count: "exact", head: true })
+          .eq("kid_id", kid.id);
+
+        const { data: reviewedCards } = await supabase
+          .from("card_reviews")
+          .select("flashcard_id")
+          .eq("kid_id", kid.id);
+
+        const topicIds = new Set<string>();
+        if (reviewedCards && reviewedCards.length > 0) {
+          const cardIds = reviewedCards.map((r: { flashcard_id: string }) => r.flashcard_id);
+          const { data: cards } = await supabase
+            .from("flashcards")
+            .select("id, topic_id")
+            .in("id", cardIds);
+          cards?.forEach((c: { topic_id: string }) => topicIds.add(c.topic_id));
+        }
+
+        const { count: totalCards } = await supabase
+          .from("flashcards")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "published");
+
+        setStats({
+          reviews: reviews ?? 0,
+          topics: topicIds.size,
+          cards: totalCards ?? 0,
+        });
+      }
 
       const { data, error } = await supabase
         .from("subjects")
@@ -143,22 +175,21 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Welcome tip */}
-          {showTip && (
-            <div className="w-full max-w-md mb-6 bg-secondary/10 border-2 border-secondary/30 rounded-2xl p-4 flex items-start gap-3 relative">
-              <span className="material-symbols-outlined text-3xl text-secondary shrink-0 mt-0.5">lightbulb</span>
-              <div className="flex-1">
-                <p className="font-body-lg text-on-surface font-semibold text-sm">Welcome to Flipzy!</p>
-                <p className="font-body-md text-on-surface-variant text-xs mt-1">
-                  Pick a subject, choose a topic, then tap cards to learn. You&apos;ll rate each card to help Flipzy remember what you need to practice.
-                </p>
+          {/* Analytics */}
+          {stats && (
+            <div className="w-full max-w-md mb-6 grid grid-cols-3 gap-3">
+              <div className="bg-arcade-surface border-2 border-arcade-border rounded-xl p-3 text-center shadow-card-ambient">
+                <p className="font-headline-lg text-headline-lg text-primary">{stats.reviews}</p>
+                <p className="font-label-caps text-xs text-on-surface-variant">Reviews</p>
               </div>
-              <button
-                onClick={() => setShowTip(false)}
-                className="text-on-surface-variant hover:text-primary transition-colors shrink-0"
-              >
-                <span className="material-symbols-outlined text-xl">close</span>
-              </button>
+              <div className="bg-arcade-surface border-2 border-arcade-border rounded-xl p-3 text-center shadow-card-ambient">
+                <p className="font-headline-lg text-headline-lg text-secondary">{stats.topics}</p>
+                <p className="font-label-caps text-xs text-on-surface-variant">Topics</p>
+              </div>
+              <div className="bg-arcade-surface border-2 border-arcade-border rounded-xl p-3 text-center shadow-card-ambient">
+                <p className="font-headline-lg text-headline-lg text-tertiary">{stats.cards}</p>
+                <p className="font-label-caps text-xs text-on-surface-variant">Cards</p>
+              </div>
             </div>
           )}
 
