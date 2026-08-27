@@ -255,15 +255,15 @@ export default function TopicSelectorPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {topic.flashcard_count !== undefined && topic.flashcard_count > 0 && (
+                    {topic.flashcard_count !== undefined && (
                       <span
                         className={`px-2 py-0.5 rounded-full text-xs font-label-caps border ${
-                          (topic.reviewed_count ?? 0) >= topic.flashcard_count!
+                          topic.flashcard_count > 0 && (topic.reviewed_count ?? 0) >= topic.flashcard_count
                             ? "bg-tertiary-fixed text-on-tertiary-fixed border-tertiary"
                             : "bg-surface-container-low text-on-surface-variant border-outline-variant/50"
                         }`}
                       >
-                        {topic.reviewed_count ?? 0}/{topic.flashcard_count}
+                        {topic.flashcard_count === 0 ? "No cards" : `${topic.reviewed_count ?? 0}/${topic.flashcard_count}`}
                       </span>
                     )}
                     <span className="material-symbols-outlined text-accent-food transition-transform duration-200 group-hover:translate-x-1">

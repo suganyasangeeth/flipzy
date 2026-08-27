@@ -26,7 +26,6 @@ export default function HomePage() {
   const [kidName, setKidName] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [allHidden, setAllHidden] = useState(false);
-  const [stats, setStats] = useState<{ reviews: number; topics: number; cards: number } | null>(null);
 
   useEffect(() => {
     async function fetchSubjects() {
@@ -43,39 +42,6 @@ export default function HomePage() {
         .single();
 
       if (kid?.name) setKidName(kid.name);
-
-      if (kid) {
-        const { count: reviews } = await supabase
-          .from("card_reviews")
-          .select("id", { count: "exact", head: true })
-          .eq("kid_id", kid.id);
-
-        const { data: reviewedCards } = await supabase
-          .from("card_reviews")
-          .select("flashcard_id")
-          .eq("kid_id", kid.id);
-
-        const topicIds = new Set<string>();
-        if (reviewedCards && reviewedCards.length > 0) {
-          const cardIds = reviewedCards.map((r: { flashcard_id: string }) => r.flashcard_id);
-          const { data: cards } = await supabase
-            .from("flashcards")
-            .select("id, topic_id")
-            .in("id", cardIds);
-          cards?.forEach((c: { topic_id: string }) => topicIds.add(c.topic_id));
-        }
-
-        const { count: totalCards } = await supabase
-          .from("flashcards")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "published");
-
-        setStats({
-          reviews: reviews ?? 0,
-          topics: topicIds.size,
-          cards: totalCards ?? 0,
-        });
-      }
 
       const { data, error } = await supabase
         .from("subjects")
@@ -174,24 +140,6 @@ export default function HomePage() {
               Pick a subject to start learning
             </p>
           </div>
-
-          {/* Analytics */}
-          {stats && (
-            <div className="w-full max-w-md mb-6 grid grid-cols-3 gap-3">
-              <div className="bg-arcade-surface border-2 border-arcade-border rounded-xl p-3 text-center shadow-card-ambient">
-                <p className="font-headline-lg text-headline-lg text-primary">{stats.reviews}</p>
-                <p className="font-label-caps text-xs text-on-surface-variant">Reviews</p>
-              </div>
-              <div className="bg-arcade-surface border-2 border-arcade-border rounded-xl p-3 text-center shadow-card-ambient">
-                <p className="font-headline-lg text-headline-lg text-secondary">{stats.topics}</p>
-                <p className="font-label-caps text-xs text-on-surface-variant">Topics</p>
-              </div>
-              <div className="bg-arcade-surface border-2 border-arcade-border rounded-xl p-3 text-center shadow-card-ambient">
-                <p className="font-headline-lg text-headline-lg text-tertiary">{stats.cards}</p>
-                <p className="font-label-caps text-xs text-on-surface-variant">Cards</p>
-              </div>
-            </div>
-          )}
 
           {/* Subject grid */}
           {loading ? (
