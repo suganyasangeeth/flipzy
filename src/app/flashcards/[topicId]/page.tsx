@@ -71,6 +71,7 @@ export default function FlashcardPage() {
   const [topicStatsData, setTopicStatsData] = useState<{ reviewed: number; total: number } | null>(null);
   const [reviewedToday, setReviewedToday] = useState(0);
   const [bypassedLimit, setBypassedLimit] = useState(false);
+  const [suppressFlip, setSuppressFlip] = useState(false);
 
   const limit = kid?.daily_card_limit ?? 20;
   const remainingToday = Math.max(0, limit - reviewedToday);
@@ -186,7 +187,11 @@ export default function FlashcardPage() {
 
     setFlipped(false);
     if (cardIndex < sessionCards.length - 1) {
+      setSuppressFlip(true);
       setCardIndex(cardIndex + 1);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setSuppressFlip(false));
+      });
     } else {
       setShowSessionEnd(true);
     }
@@ -503,13 +508,19 @@ export default function FlashcardPage() {
 
       {/* Main — card + controls */}
       <main className="flex-1 flex flex-col items-center px-4 md:px-6 pt-3 md:pt-4 pb-4 md:pb-6 max-w-3xl mx-auto w-full">
-        {/* Flashcard — no CSS flip animation, instant swap */}
+        {/* Flashcard — CSS flip for reveal, instant swap for next card */}
         <div
           className="w-full aspect-[4/3] md:aspect-[16/9] perspective-1000 mb-3 md:mb-4 cursor-pointer group"
           onClick={() => !flipped && setFlipped(true)}
         >
-          {!flipped ? (
-            <div className="w-full h-full bg-white flex flex-col items-center justify-center p-5 md:p-8 shadow-2xl rounded-3xl border-2 border-secondary border-t-4 border-t-secondary transition-all duration-200 group-hover:scale-[1.01]">
+          <div
+            className={`w-full h-full relative transform-style-3d ${
+              suppressFlip ? "" : "transition-transform duration-500 ease-in-out"
+            } ${flipped ? "rotate-y-180" : ""}`}
+            style={suppressFlip ? { transition: "none" } : undefined}
+          >
+            {/* Front */}
+            <div className="absolute inset-0 backface-hidden bg-white flex flex-col items-center justify-center p-5 md:p-8 shadow-2xl rounded-3xl border-2 border-secondary border-t-4 border-t-secondary transition-all duration-200 group-hover:scale-[1.01]">
               <div className="absolute top-3 right-3 md:top-4 md:right-4">
                 <span className="material-symbols-outlined text-lg md:text-xl text-secondary/20" style={{ fontVariationSettings: "'FILL' 1" }}>
                   auto_awesome
@@ -524,8 +535,8 @@ export default function FlashcardPage() {
                 </span>
               </div>
             </div>
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-[#FFD83D] to-[#FFC20A] flex flex-col items-center justify-center p-5 md:p-8 shadow-2xl rounded-3xl border-2 border-primary">
+            {/* Back */}
+            <div className="absolute inset-0 backface-hidden rotate-y-180 bg-gradient-to-br from-[#FFD83D] to-[#FFC20A] flex flex-col items-center justify-center p-5 md:p-8 shadow-2xl rounded-3xl border-2 border-primary">
               <div className="absolute top-3 right-3 md:top-4 md:right-4">
                 <span className="material-symbols-outlined text-lg md:text-xl text-primary/20" style={{ fontVariationSettings: "'FILL' 1" }}>
                   auto_awesome
@@ -540,7 +551,7 @@ export default function FlashcardPage() {
                 </span>
               </div>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Controls */}
@@ -571,7 +582,14 @@ export default function FlashcardPage() {
         ) : (
           <div className="flex items-center justify-between w-full max-w-sm gap-3 md:gap-4">
             <button
-              onClick={() => { setFlipped(false); setCardIndex(cardIndex - 1); }}
+              onClick={() => {
+                setSuppressFlip(true);
+                setFlipped(false);
+                setCardIndex(cardIndex - 1);
+                requestAnimationFrame(() => {
+                  requestAnimationFrame(() => setSuppressFlip(false));
+                });
+              }}
               disabled={cardIndex === 0}
               className="flex-1 h-12 md:h-14 bg-surface-container-lowest rounded-full flex items-center justify-center gap-2 text-on-surface font-headline-md text-sm md:text-headline-md uppercase transition-transform shadow-lg disabled:opacity-40 disabled:cursor-not-allowed border-2 border-outline-variant hover:translate-y-0.5"
             >
