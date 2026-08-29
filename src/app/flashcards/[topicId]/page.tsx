@@ -72,12 +72,9 @@ export default function FlashcardPage() {
   const [reviewedToday, setReviewedToday] = useState(0);
   const [bypassedLimit, setBypassedLimit] = useState(false);
   const [suppressFlip, setSuppressFlip] = useState(false);
+  const [sessionBatch, setSessionBatch] = useState<DueCard[]>([]);
 
   const limit = kid?.daily_card_limit ?? 20;
-  const remainingToday = Math.max(0, limit - reviewedToday);
-  const sessionCards = bypassedLimit
-    ? allDueCards.slice(reviewedToday, reviewedToday + SESSION_SIZE)
-    : allDueCards.slice(reviewedToday, reviewedToday + remainingToday);
 
   const load = useCallback(async () => {
     if (!topicId) return;
@@ -130,6 +127,10 @@ export default function FlashcardPage() {
           setReviewedToday(reviewed);
 
           const dailyLimit = k.daily_card_limit ?? 20;
+          const remainingToday = Math.max(0, dailyLimit - reviewed);
+          const nextBatch = cards.length > reviewed ? cards.slice(reviewed, reviewed + Math.max(remainingToday, 1)) : [];
+          setSessionBatch(nextBatch);
+
           if (reviewed >= dailyLimit && cards.length > reviewed) {
             setShowDailyLimitReached(true);
           }
@@ -163,8 +164,8 @@ export default function FlashcardPage() {
   }
 
   function handleRate(rating: Rating) {
-    if (!kid || cardIndex >= sessionCards.length) return;
-    const card = sessionCards[cardIndex];
+    if (!kid || cardIndex >= sessionBatch.length) return;
+    const card = sessionBatch[cardIndex];
     const state: ReviewState = {
       ease_factor: card.ease_factor,
       interval_days: card.interval_days,
@@ -178,6 +179,7 @@ export default function FlashcardPage() {
     newAll[globalIndex] = updated;
     setAllDueCards(newAll);
     setReviewedToday(reviewedToday + 1);
+    setSessionBatch(sessionBatch.filter((_, i) => i !== cardIndex));
 
     if (topicStatsData) {
       setTopicStatsData({
@@ -187,9 +189,11 @@ export default function FlashcardPage() {
     }
 
     setFlipped(false);
-    if (cardIndex < sessionCards.length - 1) {
+    if (sessionBatch.length > 1) {
       setSuppressFlip(true);
-      setCardIndex(cardIndex + 1);
+      if (cardIndex >= sessionBatch.length - 1) {
+        setCardIndex(sessionBatch.length - 2);
+      }
       requestAnimationFrame(() => {
         requestAnimationFrame(() => setSuppressFlip(false));
       });
@@ -201,6 +205,9 @@ export default function FlashcardPage() {
   function continueSession() {
     setShowSessionEnd(false);
     setBypassedLimit(true);
+    const totalDone = reviewedToday;
+    const nextBatch = allDueCards.slice(totalDone, totalDone + SESSION_SIZE);
+    setSessionBatch(nextBatch);
     setCardIndex(0);
     setFlipped(false);
   }
@@ -289,7 +296,7 @@ export default function FlashcardPage() {
     );
   }
 
-  if (sessionCards.length === 0 && !loading) {
+  if (sessionBatch.length === 0 && !loading) {
     return (
       <div className="bg-background min-h-screen flex flex-col">
         <header className="w-full bg-arcade-surface border-b-2 border-arcade-border flex items-center px-4 md:px-6 h-16 md:h-20 shrink-0">
@@ -325,8 +332,8 @@ export default function FlashcardPage() {
   }
 
   if (showSessionEnd) {
-    const hasMore = reviewedToday + sessionCards.length < allDueCards.length;
-    const totalReviewedNow = reviewedToday + sessionCards.length;
+    const hasMore = reviewedToday + sessionBatch.length < allDueCards.length;
+    const totalReviewedNow = reviewedToday + sessionBatch.length;
 
     return (
       <div className="bg-background min-h-screen flex flex-col items-center justify-center p-4 md:p-8 relative overflow-hidden">
@@ -340,7 +347,7 @@ export default function FlashcardPage() {
             Great Job! &#127881;
           </h1>
           <p className="font-headline-lg text-base md:text-headline-lg text-on-surface mb-2">
-            You reviewed {sessionCards.length} card{sessionCards.length !== 1 ? "s" : ""} today!
+            You reviewed {sessionBatch.length} card{sessionBatch.length !== 1 ? "s" : ""} today!
           </p>
           {hasMore && (
             <p className="font-body-md text-on-surface-variant mb-6 md:mb-12">
@@ -375,8 +382,40 @@ export default function FlashcardPage() {
     );
   }
 
-  const card = sessionCards[cardIndex];
+  const card = sessionBatch[cardIndex];
   const progress = ((reviewedToday + cardIndex + 1) / allDueCards.length) * 100;
+
+  if (!card) {
+    return (
+      <div className="bg-background min-h-screen flex flex-col">
+        <header className="w-full bg-arcade-surface border-b-2 border-arcade-border flex items-center px-4 md:px-6 h-16 md:h-20 shrink-0">
+          <button
+            onClick={goBackToTopic}
+            className="flex items-center gap-2 bg-surface-container-highest rounded-full px-4 py-2 border border-outline-variant text-primary hover:bg-surface-variant transition-colors active:translate-y-0.5 shrink-0"
+          >
+            <span className="material-symbols-outlined text-lg">arrow_back</span>
+            <span className="font-label-caps text-xs hidden md:inline">Back</span>
+          </button>
+          <div className="flex-1 flex justify-center">
+            <img src="/brand/flipzy-logo-horizontal.svg" alt="Flipzy" className="h-10 md:h-14" />
+          </div>
+          <div className="w-20 shrink-0" />
+        </header>
+        <main className="flex-1 flex flex-col items-center justify-center p-6">
+          <span className="material-symbols-outlined text-6xl text-tertiary mb-4">check_circle</span>
+          <p className="font-headline-md text-headline-md text-on-surface text-center">
+            All caught up!
+          </p>
+          <button
+            onClick={goBackToTopic}
+            className="mt-6 h-12 px-6 rounded-xl bg-primary text-on-primary font-label-caps text-label-caps uppercase chunky-btn border-4 border-on-primary/20"
+          >
+            Choose Topic
+          </button>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-background min-h-screen flex flex-col font-display-hero select-none">
