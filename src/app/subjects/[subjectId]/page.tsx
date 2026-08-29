@@ -45,46 +45,45 @@ export default function TopicSelectorPage() {
   }, [subjectId]);
 
   async function load() {
-    const { data: s } = await supabase
-      .from("subjects")
-      .select("id, name, color, icon, order")
-      .eq("id", subjectId)
-      .single();
-    if (s) setSubject(s);
+    try {
+      const { data: s } = await supabase
+        .from("subjects")
+        .select("id, name, color, icon, order")
+        .eq("id", subjectId)
+        .single();
+      if (s) setSubject(s);
 
-    const { data: t } = await supabase
-      .from("topics")
-      .select("id, subject_id, name, description, order")
-      .eq("subject_id", subjectId)
-      .order("order", { ascending: true });
+      const { data: t } = await supabase
+        .from("topics")
+        .select("id, subject_id, name, description, order")
+        .eq("subject_id", subjectId)
+        .order("order", { ascending: true });
 
-    if (t && t.length > 0) {
-      const topicIds = t.map((tp: { id: string }) => tp.id);
+      if (t && t.length > 0) {
+        const topicIds = t.map((tp: { id: string }) => tp.id);
 
-      const { data: cardCounts } = await supabase
-        .from("flashcards")
-        .select("topic_id")
-        .in("topic_id", topicIds)
-        .eq("status", "published");
+        const { data: cardCounts } = await supabase
+          .from("flashcards")
+          .select("topic_id")
+          .in("topic_id", topicIds)
+          .eq("status", "published");
 
-      const countMap: Record<string, number> = {};
-      (cardCounts ?? []).forEach((c: { topic_id: string }) => {
-        countMap[c.topic_id] = (countMap[c.topic_id] || 0) + 1;
-      });
+        const countMap: Record<string, number> = {};
+        (cardCounts ?? []).forEach((c: { topic_id: string }) => {
+          countMap[c.topic_id] = (countMap[c.topic_id] || 0) + 1;
+        });
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const reviewedMap: Record<string, number> = {};
-      if (user) {
-        const { data: kid } = await supabase
-          .from("kid_accounts")
-          .select("id")
-          .eq("email", user.email)
-          .single();
-        if (kid) {
-          const allCardIds = (cardCounts ?? []).map((c: { topic_id: string }) => c.topic_id);
-          if (allCardIds.length > 0) {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        const reviewedMap: Record<string, number> = {};
+        if (user) {
+          const { data: kid } = await supabase
+            .from("kid_accounts")
+            .select("id")
+            .eq("email", user.email)
+            .single();
+          if (kid && topicIds.length > 0) {
             const { data: cards } = await supabase
               .from("flashcards")
               .select("id, topic_id")
@@ -108,19 +107,22 @@ export default function TopicSelectorPage() {
             }
           }
         }
+
+        const enriched = t.map((tp: Topic) => ({
+          ...tp,
+          flashcard_count: countMap[tp.id] || 0,
+          reviewed_count: reviewedMap[tp.id] || 0,
+        }));
+        setTopics(enriched);
+      } else {
+        setTopics(t || []);
       }
-
-      const enriched = t.map((tp: Topic) => ({
-        ...tp,
-        flashcard_count: countMap[tp.id] || 0,
-        reviewed_count: reviewedMap[tp.id] || 0,
-      }));
-      setTopics(enriched);
-    } else {
-      setTopics(t || []);
+    } catch (err) {
+      console.error("[topics] load error:", err);
+      setTopics([]);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
   if (loading) {

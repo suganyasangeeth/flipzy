@@ -82,65 +82,66 @@ export default function FlashcardPage() {
   const load = useCallback(async () => {
     if (!topicId) return;
 
-    const { data: t } = await supabase
-      .from("topics")
-      .select("id, name, subject_id")
-      .eq("id", topicId)
-      .single();
-    if (t) {
-      setTopic(t);
-      const { data: s } = await supabase
-        .from("subjects")
-        .select("id, name, color, icon")
-        .eq("id", t.subject_id)
+    try {
+      const { data: t } = await supabase
+        .from("topics")
+        .select("id, name, subject_id")
+        .eq("id", topicId)
         .single();
-      if (s) setSubject(s);
-    }
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    const { data: k, error: kidError } = await supabase
-      .from("kid_accounts")
-      .select("id, is_paused, has_seen_onboarding, daily_card_limit")
-      .eq("email", user.email)
-      .single();
-    if (kidError) {
-      console.error("[flashcards] kid_accounts lookup error:", kidError);
-    }
-    if (k) {
-      setKid(k);
-
-      const seenKey = `flipzy_onboarding_seen_${k.id}`;
-      const seenInStorage = typeof window !== "undefined" && localStorage.getItem(seenKey);
-      const shouldShowOnboarding = !k.has_seen_onboarding && !seenInStorage;
-      if (shouldShowOnboarding) setOnboardingStep(1);
-
-      if (!k.is_paused) {
-        const [cards, stats, reviewed] = await Promise.all([
-          fetchDueCards(supabase, topicId, k.id),
-          topicStats(supabase, k.id, topicId),
-          todayReviewedCount(supabase, k.id, topicId),
-        ]);
-        setAllDueCards(cards);
-        setTopicStatsData(stats);
-        setReviewedToday(reviewed);
-
-        const dailyLimit = k.daily_card_limit ?? 20;
-        if (reviewed >= dailyLimit && cards.length > reviewed) {
-          setShowDailyLimitReached(true);
-        }
+      if (t) {
+        setTopic(t);
+        const { data: s } = await supabase
+          .from("subjects")
+          .select("id, name, color, icon")
+          .eq("id", t.subject_id)
+          .single();
+        if (s) setSubject(s);
       }
-    } else {
-      console.error("[flashcards] No kid_accounts row found for", user.email);
-    }
 
-    setLoading(false);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: k, error: kidError } = await supabase
+        .from("kid_accounts")
+        .select("id, is_paused, has_seen_onboarding, daily_card_limit")
+        .eq("email", user.email)
+        .single();
+      if (kidError) {
+        console.error("[flashcards] kid_accounts lookup error:", kidError);
+      }
+      if (k) {
+        setKid(k);
+
+        const seenKey = `flipzy_onboarding_seen_${k.id}`;
+        const seenInStorage = typeof window !== "undefined" && localStorage.getItem(seenKey);
+        const shouldShowOnboarding = !k.has_seen_onboarding && !seenInStorage;
+        if (shouldShowOnboarding) setOnboardingStep(1);
+
+        if (!k.is_paused) {
+          const [cards, stats, reviewed] = await Promise.all([
+            fetchDueCards(supabase, topicId, k.id),
+            topicStats(supabase, k.id, topicId),
+            todayReviewedCount(supabase, k.id, topicId),
+          ]);
+          setAllDueCards(cards);
+          setTopicStatsData(stats);
+          setReviewedToday(reviewed);
+
+          const dailyLimit = k.daily_card_limit ?? 20;
+          if (reviewed >= dailyLimit && cards.length > reviewed) {
+            setShowDailyLimitReached(true);
+          }
+        }
+      } else {
+        console.error("[flashcards] No kid_accounts row found for", user.email);
+      }
+    } catch (err) {
+      console.error("[flashcards] load error:", err);
+    } finally {
+      setLoading(false);
+    }
   }, [topicId]);
 
   useEffect(() => {

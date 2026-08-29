@@ -29,54 +29,52 @@ export default function HomePage() {
 
   useEffect(() => {
     async function fetchSubjects() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setLoading(false);
-        return;
-      }
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-      const { data: kid } = await supabase
-        .from("kid_accounts")
-        .select("id, name")
-        .eq("email", user.email)
-        .single();
+        const { data: kid } = await supabase
+          .from("kid_accounts")
+          .select("id, name")
+          .eq("email", user.email)
+          .single();
 
-      if (kid?.name) setKidName(kid.name);
+        if (kid?.name) setKidName(kid.name);
 
-      const { data, error } = await supabase
-        .from("subjects")
-        .select("id, name, color, icon, order")
-        .eq("visible", true)
-        .order("order", { ascending: true });
+        const { data, error } = await supabase
+          .from("subjects")
+          .select("id, name, color, icon, order")
+          .eq("visible", true)
+          .order("order", { ascending: true });
 
-      if (error || !data || data.length === 0) {
-        setLoading(false);
-        return;
-      }
+        if (error || !data || data.length === 0) return;
 
-      if (kid) {
-        const { data: hidden } = await supabase
-          .from("kid_subject_visibility")
-          .select("subject_id")
-          .eq("kid_id", kid.id)
-          .eq("visible", false);
+        if (kid) {
+          const { data: hidden } = await supabase
+            .from("kid_subject_visibility")
+            .select("subject_id")
+            .eq("kid_id", kid.id)
+            .eq("visible", false);
 
-        if (hidden && hidden.length > 0) {
-          const hiddenIds = new Set(hidden.map((h) => h.subject_id));
-          const filtered = data.filter((s) => !hiddenIds.has(s.id));
-          if (filtered.length > 0) {
-            setSubjects(filtered);
-          } else {
-            setSubjects([]);
-            setAllHidden(true);
+          if (hidden && hidden.length > 0) {
+            const hiddenIds = new Set(hidden.map((h) => h.subject_id));
+            const filtered = data.filter((s) => !hiddenIds.has(s.id));
+            if (filtered.length > 0) {
+              setSubjects(filtered);
+            } else {
+              setSubjects([]);
+              setAllHidden(true);
+            }
+            return;
           }
-          setLoading(false);
-          return;
         }
-      }
 
-      setSubjects(data);
-      setLoading(false);
+        setSubjects(data);
+      } catch (err) {
+        console.error("[home] load error:", err);
+      } finally {
+        setLoading(false);
+      }
     }
     fetchSubjects();
   }, []);
